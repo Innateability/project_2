@@ -50,8 +50,12 @@ def signup():
         if not entered_entry_code == entry_code:
             flash("incorrect entry code","error")
             return redirect(request.url)
-        department = request.form.get("department")
         is_admin = "role" in request.form
+        if is_admin:
+            department = request.form.get("department_new")  # admin input
+        else:
+            department = request.form.get("department_select")  # employee select
+
         if not all([username, password]):
             flash("Username and password are required", "error")
             return redirect(url_for("base.signup"))
@@ -88,4 +92,5 @@ def signup():
             return redirect(url_for("base.signup"))
         flash("signup succesful","success")
         return redirect(url_for("base.login"))
-    return render_template("signup.html")
+    departments = Department.query.all()
+    return render_template("signup.html",departments=departments)

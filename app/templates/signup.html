@@ -12,19 +12,63 @@
     <input type="email" name="email" required>
 
     <label>Password</label>
-    <input type="password" name="password" required>
-
-    <label>Department</label>
-    <input type="text" name="department" required>
-
+    <input type="password" name="password" id="password" required>
+    <label>Confirm Password</label>
+    <input type="password" name="confirm_password" id="confirm_password" required>
+    <div id="password-flash" style="color: red; margin-top: 10px;"></div>
     <label>Entry Code</label>
     <input type="password" name="entry_code" required>
 
-    <label>
-        <input type="checkbox" name="role">
-        Signup as Admin
-    </label>
+    <label style="display: flex; align-items: center; gap: 5px;">
+    <input type="checkbox" name="role" id="roleCheckbox" style="width: auto; margin: 0;">
+    Signup as Admin
+    </label><br><br>
+    <label>Department</label>
+    
+    <select name="department_select" id="departmentSelect" required>
+    <option value="" disabled selected>Select your department</option>
+    {% for dept in departments %}
+        <option value="{{ dept.name }}">{{ dept.name }}</option>
+    {% endfor %}
+    </select>
+    
+    <input type="text" name="department_new" id="departmentNew" placeholder="Enter new department" style="display:none; margin-top:5px;">
 
-    <button type="submit">Create Account</button>
+    <script>
+    const roleCheckbox = document.getElementById("roleCheckbox");
+    const departmentSelect = document.getElementById("departmentSelect");
+    const departmentNew = document.getElementById("departmentNew");
+
+    roleCheckbox.addEventListener("change", function() {
+        if (this.checked) {
+            // Admin can enter new department
+            departmentNew.style.display = "block";
+            departmentSelect.removeAttribute("required");
+        } else {
+            // Hide new department input
+            departmentNew.style.display = "none";
+            departmentSelect.setAttribute("required", "true");
+        }
+    });
+    </script>
+
+    <button type="submit" id="submit-btn">Create Account</button>
+    
 </form>
+
+<script>
+document.getElementById("submit-btn").addEventListener("click", function(event) {
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirm_password").value;
+    const flashDiv = document.getElementById("password-flash");
+
+    if (password !== confirmPassword) {
+        event.preventDefault(); // stop form from submitting
+        flashDiv.textContent = "Passwords do not match!";
+    } else {
+        flashDiv.textContent = ""; // clear message
+    }
+});
+</script>
+
 {% endblock %}

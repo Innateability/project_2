@@ -70,7 +70,15 @@
 </head>
 <body>
 
-<div class="page-title">{{ page_title }}</div>
+<div style="position: relative; height: 80px; margin-bottom: 20px;">
+        <!-- Logo at top-left -->
+        <div style="position: absolute; top: 0; left: 20px;">
+            <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Logo" style="height: 100px;">
+        </div>
+
+        <!-- Page title at top-right -->
+        <div class="page-title">{{ page_title }}</div>
+    </div>
 
 <div class="container">
 
