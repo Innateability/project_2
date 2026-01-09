@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% set page_title = "ADD OBJECTIVES" %}
+
+{% block content %}
+<h2>Add Objectives</h2>
+
+<form method="POST" onsubmit="return validateWeights()">
+    <label><b>Title (shared by all objectives)</b></label>
+    <input type="text" name="title" required>
+    <label>Year</label>
+    <input type="number" name="year" required>
+    <hr>
+    <div id="objectives-container">
+        <div class="objective-block">
+            <h4>Objective 1</h4>
+            <label>Objective</label>
+            <input type="text" name="objectives[]" required>
+            <label>Description</label>
+            <textarea name="descriptions[]" required></textarea>
+            <label>Category</label>
+            <input type="text" name="categories[]" required>
+            <label>Weight (%)</label>
+            <input type="number" name="weights[]" required>
+            <label>Score Range</label>
+            <input type="number" name="score_ranges[]" required>
+            <hr>
+        </div>
+    </div>
+
+    <!-- ADD BUTTON -->
+    <button type="button" onclick="addObjective()">➕ Add Another Objective</button>
+
+    <br><br>
+
+    <!-- ASSIGNMENT -->
+    <label><b>Assign To (Employees)</b></label>
+    <select name="assigned_tos[]" multiple required>
+    {% for name in employee_names %}
+        <option value="{{ name }}">{{ name }}</option>
+    {% endfor %}
+    </select>
+    <p><small>Hold Ctrl (or Cmd on Mac) to select multiple employees</small></p>
+
+    <br><br>
+
+    <button type="submit">Submit Objectives</button>
+</form>
+
+<script>
+let count = 1;
+
+function addObjective() {
+    count++;
+    const container = document.getElementById("objectives-container");
+    const block = document.createElement("div");
+    block.className = "objective-block";
+    block.innerHTML = `
+        <h4>Objective ${count}</h4>
+        <label>Objective</label>
+        <input type="text" name="objectives[]" required>
+        <label>Description</label>
+        <textarea name="descriptions[]" required></textarea>
+        <label>Category</label>
+        <input type="text" name="categories[]" required>
+        <label>Weight (%)</label>
+        <input type="number" name="weights[]" required>
+        <label>Score Range</label>
+        <input type="number" name="score_ranges[]" required>
+        <hr>
+    `;
+    container.appendChild(block);
+}
+
+function validateWeights() {
+    const weights = document.getElementsByName("weights[]");
+    let total = 0;
+    for (let i = 0; i < weights.length; i++) {
+        total += Number(weights[i].value || 0);
+    }
+    if (total !== 100) {
+        alert("Total weight must equal 100%. Current total: " + total);
+        return false;
+    }
+    return true;
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% set page_title = "OBJECTIVE OVERVIEW" %}
+
+{% block content %}
+<h2 style="font-weight: bold; margin-bottom: 20px;">{{ batch.title }}</h2>
+<p><strong>Employee:</strong> {{ employee.name }}</p>
+
+<table style="width:100%; max-width:800px; border-collapse: collapse; background-color: #f5e1dc; border-radius: 8px; overflow: hidden; margin-bottom: 30px;">
+<tr>
+    <th style="padding: 12px; border: 1px solid #ccc;">#</th>
+    <th style="padding: 12px; border: 1px solid #ccc;">Objective</th>
+    <th style="padding: 12px; border: 1px solid #ccc;">Category</th>
+    <th style="padding: 12px; border: 1px solid #ccc;">Score</th>
+    <th style="padding: 12px; border: 1px solid #ccc;">Weight</th>
+    <th style="padding: 12px; border: 1px solid #ccc;">Weighted Score</th>
+</tr>
+
+{% for obj in objectives %}
+<tr>
+    <td style="padding: 12px; border: 1px solid #ccc;">{{ loop.index }}</td>
+    <td style="padding: 12px; border: 1px solid #ccc;">{{ obj.objective }}</td>
+    <td style="padding: 12px; border: 1px solid #ccc;">{{ obj.category }}</td>
+    <td style="padding: 12px; border: 1px solid #ccc;">
+        {{ obj.reviews.score if obj.reviews else "-" }}
+    </td>
+    <td style="padding: 12px; border: 1px solid #ccc;">{{ obj.weight }}</td>
+    <td style="padding: 12px; border: 1px solid #ccc;">
+        {{ obj.reviews.weighted_score if obj.reviews else "-" }}
+    </td>
+</tr>
+{% endfor %}
+
+<!-- Total row -->
+<tr style="font-weight: bold; background-color:#e0b7a4;">
+    <td colspan="5" style="padding:12px; border:1px solid #ccc; text-align:right;">Total Weighted Score</td>
+    <td style="padding:12px; border:1px solid #ccc;">{{ total_weighted }}</td>
+</tr>
+</table>
+
+<hr>
+
+{% for obj in objectives %}
+    {% if obj.reviews %}
+        <div style="background:#fff4ef; padding:15px; border-radius:8px; margin-bottom:15px;">
+            <strong>Objective:</strong> {{ obj.objective }} <br>
+            <strong>Admin Review</strong><br>
+            Score: {{ obj.reviews.score }} <br>
+            Comment: {{ obj.reviews.review or "No comment" }}
+        </div>
+
+        {% if obj.reviews.feedbacks %}
+            <div style="background:#eef7ff; padding:15px; border-radius:8px; margin-bottom:20px;">
+                <strong>Employee Feedback</strong><br>
+                {{ obj.reviews.feedbacks.feedback }}
+            </div>
+        {% endif %}
+    {% endif %}
+{% endfor %}
+
+
+<!-- Review Section -->
+{% for obj in objectives %}
+    {% if not obj.reviews %}
+    {% if role == "admin" %}
+            <a href="{{ url_for('admin.review_objective', objective_id=obj.id) }}" class="obj-style" style="margin-left:200px;padding-left: 20px;">
+                Give Review for "{{ obj.objective }}"
+            </a>
+        {% endif %}
+    {% endif %}
+{% endfor %}
+
+<br><br><br>
+
+<!-- Feedback Section -->
+{% for obj in objectives %}
+    {% if obj.reviews and not obj.reviews.feedbacks %}
+        {% if role == "employee" %}
+            <a href="{{ url_for('employee.feedback', objective_id=obj.id) }}" class="obj-style">Give Feedback for "{{ obj.objective }}"</a>
+        {% endif %}
+    {% endif %}
+{% endfor %}
+
+<br><br>
+
+{% if role == "admin" %}
+{% for obj in objectives %}
+    <a href="{{ url_for('admin.delete_objective', objective_id=obj.id) }}" class="obj-style" style="background-color:red; color:white; margin-right:10px;">
+        Delete "{{ obj.objective }}"
+    </a>
+{% endfor %}
+{% endif %}
+
+{% endblock %}

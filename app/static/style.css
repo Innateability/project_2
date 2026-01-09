@@ -1,0 +1,45 @@
+.btn {
+  display: inline-block;
+  padding: 10px 16px;
+  background: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+}
+.obj-style {
+  background-color: green;
+  max-width: 100px;
+  width: 30%;
+  padding: 10px;
+  margin: 20px;
+  text-decoration: none;
+  border: black 2px solid;
+  border-radius: 5px;
+  color: black;
+  display: flex;
+}
+.objective-block {
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    background-color: #ffffff;
+    position: relative;
+    width: 100%;
+    max-width: 700px;
+}
+.objective-container {
+    border: 2px solid #e0e0e0;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 10px;
+    background-color: #fafafa;
+}
+.action-container {
+    max-width: 800px;
+    margin: 20px auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-end; 
+}

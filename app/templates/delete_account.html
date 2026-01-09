@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% set page_title = "DELETE ACCOUNT" %}
+
+{% block content %}
+<h2>Delete {{ state|capitalize }} Account</h2>
+
+<form method="POST">
+    <label>Confirm Password</label>
+    <input type="password" name="password" required>
+
+    <button type="submit">Delete Account</button>
+</form>
+{% endblock %}

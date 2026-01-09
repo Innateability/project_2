@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% set page_title = "SIGNUP" %}
+
+{% block content %}
+<h2>Signup</h2>
+
+<form method="POST">
+    <label>Username</label>
+    <input type="text" name="username" required>
+
+    <label>Email</label>
+    <input type="email" name="email" required>
+
+    <label>Password</label>
+    <input type="password" name="password" required>
+
+    <label>Department</label>
+    <input type="text" name="department" required>
+
+    <label>Entry Code</label>
+    <input type="password" name="entry_code" required>
+
+    <label>
+        <input type="checkbox" name="role">
+        Signup as Admin
+    </label>
+
+    <button type="submit">Create Account</button>
+</form>
+{% endblock %}
