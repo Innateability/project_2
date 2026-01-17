@@ -283,7 +283,7 @@ def objectives_overview(objective_id):
                 total_weighted += obj.admin_review.weighted_score
     return render_template("team_leader_objectives_overview.html",batch=batch,employee=employee,objectives=objectives,total_weighted=total_weighted,role="team_leader",state="team_leader",objective=objective)
 
-@team_leader_bp.route("/objective_overview/<int:objective_id>/<assigned_by_id>")
+@team_leader_bp.route("/objective_overview/<int:objective_id>/<int:assigned_by_id>")
 @login_required
 @team_leader_required
 def objective_overview(objective_id, assigned_by_id):
@@ -313,7 +313,7 @@ def objective_overview(objective_id, assigned_by_id):
     )
 
 
-@team_leader_bp.route("/delete_objective/<int:objective_id>/<assigned_by_id>", methods=["POST", "GET"])
+@team_leader_bp.route("/delete_objective/<int:objective_id>/<int:assigned_by_id>", methods=["POST", "GET"])
 @login_required
 @team_leader_required
 def delete_objective(objective_id,assigned_by_id):

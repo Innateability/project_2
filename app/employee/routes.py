@@ -253,7 +253,7 @@ def objectives_overview(objective_id):
         state="employee"
     )
 
-@employee_bp.route("/objective_overview/<int:objective_id>/<assigned_by_id>",methods=["GET","HEAD"])
+@employee_bp.route("/objective_overview/<int:objective_id>/<int:assigned_by_id>",methods=["GET","HEAD"])
 @login_required
 @employee_required
 def objective_overview(objective_id, assigned_by_id):
