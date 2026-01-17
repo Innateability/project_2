@@ -170,10 +170,10 @@ def edit_objective(objective_id):
         assigned_to = Authentication.query.filter_by(name=emp_name).first()
         admin_batch = AdminObjectiveBatch.query.filter_by(title=title,year=year).first()
         if admin_batch:
-            obj = AdminObjective.query.filter_by(id=objective_id).first_or_404()
+            obj = AdminObjective.query.filter_by(id=objective_id).first()
         else:
             admin_batch = AdminObjectiveBatch(title=title,year=year)
-            obj = AdminObjective.query.filter_by(id=objective_id).first_or_404()
+            obj = AdminObjective.query.filter_by(id=objective_id).first()
             obj.admin_batch = admin_batch
         print(objective,year,category,weight,score_range,)
         db.session.add(obj)
@@ -190,7 +190,7 @@ def edit_objective(objective_id):
         flash(f"Objective {title} edited successfully", "success")
         return redirect(url_for("admin.objectives"))
     
-    objective = AdminObjective.query.filter_by(id=objective_id).first_or_404()
+    objective = AdminObjective.query.filter_by(id=objective_id).first()
     authen = Authentication.query.get(session["user_id"])
     administrator = authen.administrator
     departments = administrator.departments
@@ -225,7 +225,7 @@ def objectives():
 @login_required
 @admin_required
 def review_objective(objective_id):
-    objective = AdminObjective.query.get_or_404(objective_id)
+    objective = AdminObjective.query.get(objective_id)
     if request.method == "POST":
         review_text = request.form.get("review")
         score_raw = request.form.get("score")
@@ -251,7 +251,7 @@ def review_objective(objective_id):
 @login_required
 @admin_required
 def edit_review(objective_id):
-    objective = AdminObjective.query.get_or_404(objective_id)
+    objective = AdminObjective.query.get(objective_id)
     review = objective.admin_review
     if request.method == "POST":
         review_text = request.form.get("review")
@@ -278,7 +278,7 @@ def edit_review(objective_id):
 @login_required
 @admin_required
 def objectives_overview(objective_id):
-    objective = AdminObjective.query.get_or_404(objective_id)
+    objective = AdminObjective.query.get(objective_id)
     batch = objective.admin_batch
     employee = objective.assigned_to
     objectives = AdminObjective.query.filter_by(admin_batch_id=batch.id, assigned_to_id=employee.id).all()
@@ -293,7 +293,7 @@ def objectives_overview(objective_id):
 @login_required
 @admin_required
 def objective_overview(objective_id):
-    objective = AdminObjective.query.get_or_404(objective_id)
+    objective = AdminObjective.query.get(objective_id)
     batch = objective.admin_batch
     title = batch.title
     year = batch.year
@@ -306,7 +306,7 @@ def objective_overview(objective_id):
 @login_required
 @admin_required
 def delete_objective(objective_id):
-    objective = AdminObjective.query.get_or_404(objective_id)
+    objective = AdminObjective.query.get(objective_id)
     batch = objective.admin_batch
     employee = objective.assigned_to
     objectives = AdminObjective.query.filter_by(admin_batch_id=batch.id, assigned_to_id=employee.id).all()

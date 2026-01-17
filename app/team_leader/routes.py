@@ -131,7 +131,7 @@ def add_objective():
 def edit_objective(objective_id):
     team_leader_email = session.get("email")
     department_head = Authentication.query.filter_by(email=team_leader_email).first().team_leader
-    obj = Objective.query.filter_by(id=objective_id).first_or_404()
+    obj = Objective.query.filter_by(id=objective_id).first()
     if obj.assigned_by != department_head:
         abort(403)
     if request.method == "POST":
@@ -154,7 +154,7 @@ def edit_objective(objective_id):
 
     department = department_head.department
     employees = department.employees
-    objective = Objective.query.filter_by(id=objective_id).first_or_404()
+    objective = Objective.query.filter_by(id=objective_id).first()
     employee_names = [emp.authentication.name for emp in employees]
     return render_template("team_leader_edit_objective.html",role="team_leader",state="team_leader",employee_names=employee_names,objective=objective,Title="EDIT OBJECTIVES")
 
@@ -162,7 +162,7 @@ def edit_objective(objective_id):
 @login_required
 @team_leader_required
 def objectives():
-    auth = Authentication.query.get_or_404(session["user_id"])
+    auth = Authentication.query.get(session["user_id"])
 
    
     team_leader = auth.team_leader
@@ -209,7 +209,7 @@ def objectives():
 @login_required
 @team_leader_required
 def review_objective(objective_id):
-    objective = Objective.query.get_or_404(objective_id)
+    objective = Objective.query.get(objective_id)
     if request.method == "POST":
         review_text = request.form.get("review")
         score_raw = request.form.get("score")
@@ -237,7 +237,7 @@ def review_objective(objective_id):
 @login_required
 @team_leader_required
 def edit_review(objective_id):
-    objective = Objective.query.get_or_404(objective_id)
+    objective = Objective.query.get(objective_id)
     review = objective.review
     if request.method == "POST":
         review_text = request.form.get("review")
@@ -287,14 +287,14 @@ def objectives_overview(objective_id):
 @login_required
 @team_leader_required
 def objective_overview(objective_id, assigned_by_id):
-    assigned_by_auth = Authentication.query.get_or_404(assigned_by_id)
+    assigned_by_auth = Authentication.query.get(assigned_by_id)
     if assigned_by_auth.role == "team_leader":
         assigned_by = assigned_by_auth.team_leader
-        objective = Objective.query.get_or_404(objective_id)
+        objective = Objective.query.get(objective_id)
         batch = objective.batch
     elif assigned_by_auth.role == "admin":
         assigned_by = assigned_by_auth.administrator
-        objective = AdminObjective.query.get_or_404(objective_id)
+        objective = AdminObjective.query.get(objective_id)
         batch = objective.admin_batch
     else:
         abort(404)
@@ -317,13 +317,13 @@ def objective_overview(objective_id, assigned_by_id):
 @login_required
 @team_leader_required
 def delete_objective(objective_id,assigned_by_id):
-    assigned_by_auth = Authentication.query.get_or_404(assigned_by_id)
+    assigned_by_auth = Authentication.query.get(assigned_by_id)
     if assigned_by_auth.role == "team_leader":
         assigned_by = assigned_by_auth.team_leader
-        objective = Objective.query.get_or_404(objective_id)
+        objective = Objective.query.get(objective_id)
     elif assigned_by_auth.role == "admin":
         assigned_by = assigned_by_auth.administrator
-        objective = AdminObjective.query.get_or_404(objective_id)
+        objective = AdminObjective.query.get(objective_id)
     else:
         abort(404)
     if request.method == "POST":
@@ -337,7 +337,7 @@ def delete_objective(objective_id,assigned_by_id):
 @login_required
 @team_leader_required
 def feedback(objective_id):
-    admin_objective = AdminObjective.query.get_or_404(objective_id)
+    admin_objective = AdminObjective.query.get(objective_id)
     
     if request.method == "POST":
         feedback_text = request.form.get("feedback")
@@ -366,7 +366,7 @@ def feedback(objective_id):
 @login_required
 @team_leader_required
 def edit_feedback(objective_id):
-    objective = AdminObjective.query.get_or_404(objective_id)
+    objective = AdminObjective.query.get(objective_id)
 
     
     if objective.assigned_to.authentication.id != session["user_id"]:

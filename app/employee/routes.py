@@ -74,13 +74,13 @@ def objectives():
 @employee_required
 def feedback(objective_id, role):
     if role == "admin":
-        objective = AdminObjective.query.get_or_404(objective_id)
+        objective = AdminObjective.query.get(objective_id)
         review = objective.admin_review
         FeedbackModel = AdminReviewFeedback
         feedback_attr = "employee_feedback"
 
     elif role == "team_leader":
-        objective = Objective.query.get_or_404(objective_id)
+        objective = Objective.query.get(objective_id)
         review = objective.review
         FeedbackModel = Feedback
         feedback_attr = "feedback"
@@ -132,7 +132,7 @@ def edit_feedback(objective_id, role):
 
   
     if role == "team_leader":
-        objective = Objective.query.get_or_404(objective_id)
+        objective = Objective.query.get(objective_id)
 
         if objective.assigned_to.id != session["user_id"]:
             flash("Unauthorized", "error")
@@ -151,7 +151,7 @@ def edit_feedback(objective_id, role):
 
    
     elif role == "admin":
-        objective = AdminObjective.query.get_or_404(objective_id)
+        objective = AdminObjective.query.get(objective_id)
 
         if objective.assigned_to.id != session["user_id"]:
             flash("Unauthorized", "error")
@@ -221,7 +221,7 @@ def objectives_overview(objective_id):
     if objective:
         batch = objective.batch
         employee = objective.assigned_to
-        if employee.authentication.id != session["user_id"]:
+        if employee.id != session["user_id"]:
             flash("Unauthorized access", "error")
             return redirect(url_for("employee.objectives"))
         objectives = Objective.query.filter_by(batch_id=batch.id,assigned_to_id=employee.id).all()
