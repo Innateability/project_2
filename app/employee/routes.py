@@ -259,11 +259,12 @@ def objectives_overview(objective_id):
 def objective_overview(objective_id, assigned_by_id):
     print(1)
     assigned_by = Authentication.query.get(assigned_by_id)
-    if hasattr(assigned_by, "objectives") and assigned_by.objectives:
+    if hasattr(assigned_by, "objectives"):
         print(2)
         objective = Objective.query.get(objective_id)
         batch = objective.batch
-    elif hasattr(assigned_by, "admin_objectives") and assigned_by.admin_objectives:
+
+    elif hasattr(assigned_by, "admin_objectives"):
         print(4)
         objective = AdminObjective.query.get(objective_id)
         batch = objective.admin_batch
