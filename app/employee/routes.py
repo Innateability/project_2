@@ -253,7 +253,7 @@ def objectives_overview(objective_id):
         state="employee"
     )
 
-@employee_bp.route("/objective_overview/<int:objective_id>/<assigned_by_id>")
+@employee_bp.route("/objective_overview/<int:objective_id>/<assigned_by_id>",methods=["GET","HEAD"])
 @login_required
 @employee_required
 def objective_overview(objective_id, assigned_by_id):
@@ -268,8 +268,6 @@ def objective_overview(objective_id, assigned_by_id):
         objective = AdminObjective.query.get(objective_id)
         batch = objective.admin_batch
         print(objective.admin_batch)
-    else:
-        abort(404) 
 
     title = batch.title
     year = batch.year
