@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% set page_title = "Edit Feedback" %}
+
+{% block content %}
+<h2>{{ objective.batch.title }}</h2>
+
+
+<p><b>Review:</b> {{ objective.admin_review.review }}</p>
+<p><b>Score:</b> {{ objective.admin_review.score }}</p>
+
+<form method="POST">
+    <label>Feedback</label>
+    <textarea name="feedback">{{feedback}}</textarea>
+
+    <button type="submit">Edit Feedback</button>
+</form>
+
+{% endblock %}

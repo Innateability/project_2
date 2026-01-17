@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% set page_title = "OBJECTIVES" %}
+
+{% block content %}
+
+<a href="{{ url_for('admin.recipients') }}" class="obj-style">Add Objective</a>
+
+<h2>Objectives</h2>
+
+{% for (title, employee_id), objs in grouped_objectives.items() %}
+    {% set ns = namespace(reviewed=false) %}
+    {% for obj in objs %}
+    {% if obj.admin_review %}
+    {% set ns.reviewed = true %}
+    {% endif %}
+    {% endfor %}
+
+    <a href="{{ url_for('admin.objectives_overview', objective_id=objs[0].id) }}" style="text-decoration:none;">
+        <div class="obj-card"
+         style="
+            background-color:white;
+            width:100%;
+            max-width:700px;
+            border:2px solid black;
+            border-radius:10px;
+            padding:20px;
+            margin:20px;
+            box-shadow:0 8px 20px rgba(0,0,0,0.3);
+            display:grid;
+            grid-template-columns:80% 20%;
+            overflow:hidden;
+            border-right: 10px solid {{ 'green' if ns.reviewed else 'none' }};">
+            <div style="overflow:hidden; text-overflow:ellipsis;">
+                {{ title }}
+            </div>
+            <div style="color:green; padding-left:20px;">
+                Assigned to: {{ objs[0].assigned_to.name }}
+            </div>
+        </div>
+    </a>
+{% endfor %}
+
+{% endblock %}

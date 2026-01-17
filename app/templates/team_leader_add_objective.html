@@ -1,10 +1,13 @@
 {% extends "base.html" %}
-{% set page_title = "ADD OBJECTIVES" %}
+{% set page_title = "add_objective" %}
 
 {% block content %}
-<h2>Add Objectives</h2>
+<h2>{{ Title }}</h2>
 
 <form method="POST" onsubmit="return validateWeights()">
+    {% for recipient in recipients %}
+    <input type="hidden" name="recipients[]" value="{{ recipient.id }}">
+    {% endfor %}
     <label><b>Title (shared by all objectives)</b></label>
     <input type="text" name="title" required>
     <label>Years</label>
@@ -27,21 +30,12 @@
         </div>
     </div>
 
-    <!-- ADD BUTTON -->
+    
     <button type="button" onclick="addObjective()">➕ Add Another Objective</button>
 
     <br><br>
 
-    <!-- ASSIGNMENT -->
-    <label><b>Assign To (Employees)</b></label>
-    <select name="assigned_tos[]" multiple required>
-    {% for name in employee_names %}
-        <option value="{{ name }}">{{ name }}</option>
-    {% endfor %}
-    </select>
-    <p><small>Hold Ctrl (or Cmd on Mac) to select multiple employees</small></p>
-
-    <br><br>
+    
 
     <button type="submit">Submit Objectives</button>
 </form>

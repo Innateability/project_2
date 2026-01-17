@@ -1,0 +1,1872 @@
+project/app/admin/__init__.py
+
+from .routes import admin_bp
+
+project/app/admin/routes.py
+
+from flask import Blueprint,url_for,render_template,redirect,flash,get_flashed_messages,request,session,abort
+from app.models import Authentication,AdminObjective,Employee,Review,AdminObjectiveBatch,AdminReview,Administrator,Objective
+from app import db
+from sqlalchemy.exc import IntegrityError
+from app.utils import login_required,admin_required
+from collections import defaultdict
+
+admin_bp = Blueprint("admin",__name__,url_prefix="/admin")
+
+@admin_bp.route("/",methods=["GET"])
+@login_required
+@admin_required
+def home():
+    return render_template("home.html",state="admin",role="admin")
+
+@admin_bp.route("/logout",methods=["POST","GET"])
+@login_required
+@admin_required
+def logout():
+    if request.method == "POST":
+        session.clear()
+        return redirect(url_for("base.login"))
+    return render_template("logout.html",state="admin",role="admin")
+
+@admin_bp.route("/delete_account",methods=["POST","GET"])
+@login_required
+@admin_required
+def delete_account():
+    if request.method == "POST":
+        authen = Authentication.query.get(session["user_id"])
+        auth = authen
+        session.clear()
+        db.session.delete(authen)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            flash("username does not exist","error")
+            db.session.rollback()
+            return redirect(url_for("base.signup"))
+        flash("account deleted succesfully","success")
+        return redirect(url_for("base.login"))
+    return render_template("delete_account.html",state="admin",role="admin")
+
+@admin_bp.route("/add_objectives", methods=["POST", "GET"])
+@login_required
+@admin_required
+def add_objective():
+    authen = Authentication.query.get(session["user_id"])
+    if authen:
+        administrator = authen.administrator
+    if request.method == "POST":
+        title = request.form.get("title")
+        year = request.form.get("year")
+        objectives = request.form.getlist("objectives[]")
+        categories = request.form.getlist("categories[]")
+        weights = request.form.getlist("weights[]")
+        score_ranges = request.form.getlist("score_ranges[]")
+        assigned_tos = request.form.getlist("assigned_tos[]")
+
+        batch = AdminObjectiveBatch(title=title,year=year)
+        db.session.add(batch)
+        db.session.flush()  
+
+        for obj, cat, weight, score_range in zip(objectives, categories, weights, score_ranges):
+            for assigned_to in assigned_tos:
+                auth = Authentication.query.get(int(assigned_to))
+
+                objective = AdminObjective(
+                    objective=obj,
+                    category=cat,
+                    weight=int(weight),
+                    score_range=int(score_range),
+                    assigned_to=auth,
+                    assigned_by=administrator,
+                    admin_batch=batch
+                )
+                db.session.add(objective)
+        db.session.commit()
+        flash("Objectives created successfully", "success")
+        return redirect(url_for("admin.objectives"))
+    if administrator:
+        departments = administrator.departments
+    employee_names = []
+    team_leader_names = []
+    employees = []
+    team_leaders = []
+    if departments:
+        for department in departments:
+            for emp in department.employees:
+                if emp.authentication:
+                    employee_names.append(emp.authentication.name)
+                    employees.append(emp.authentication)
+            if department.team_leader and department.team_leader.authentication:
+                team_leader_names.append(department.team_leader.authentication.name)
+                team_leaders.append(department.team_leader.authentication)
+    print(employee_names,team_leader_names)
+    return render_template(
+        "add_objective.html",
+        role="admin",
+        state="admin",
+        employee_names=employee_names,
+        team_leader_names=team_leader_names,
+        employees=employees,
+        team_leaders=team_leaders,
+        Title="ADD OBJECTIVES"
+    )
+
+@admin_bp.route("/edit_objectives/<int:objective_id>", methods=["POST", "GET"])
+@login_required
+@admin_required
+def edit_objective(objective_id):
+    admin_email = session.get("email")
+    auth = Authentication.query.filter_by(email=admin_email).first()
+    administrator = auth.administrator
+    if request.method == "POST":
+        title = request.form.get("title")
+        year = request.form.get("year")
+        objective = request.form.get("objective")
+        category = request.form.get("category")
+        weight = request.form.get("weight")
+        score_range = request.form.get("score_range")
+        emp_name = request.form.get("assigned_to")
+        assigned_to = Authentication.query.filter_by(name=emp_name).first()
+
+        obj = AdminObjective.query.filter_by(id=objective_id).first_or_404()
+        obj.title = title
+        obj.year = year
+        obj.objective = objective
+        obj.category = category
+        obj.weight = weight
+        obj.score_range = score_range
+        obj.assigned_to = assigned_to
+
+        db.session.commit()
+        flash(f"Objective {title} edited successfully", "success")
+        return redirect(url_for("admin.objectives"))
+    
+    objective = AdminObjective.query.filter_by(id=objective_id).first_or_404()
+    authen = Authentication.query.get(session["user_id"])
+    administrator = authen.administrator
+    departments = administrator.departments
+    
+    employee_names = []
+    team_leader_names = []
+    
+    for department in departments:
+        for emp in department.employees:
+            if emp.authentication:
+                employee_names.append(emp.authentication.name)
+        if department.team_leader and department.team_leader.authentication:
+            team_leader_names.append(department.team_leader.authentication.name)
+    return render_template("add_objective.html",role="admin",state="admin",employee_names=employee_names,objective=objective,team_leader_names=team_leader_names,Title="EDIT OBJECTIVES")
+
+
+@admin_bp.route("/objectives")
+@login_required
+@admin_required
+def objectives():
+    auth = Authentication.query.get(session["user_id"])
+    grouped = defaultdict(list)
+    for obj in auth.administrator.admin_objectives:
+        key = (obj.batch.title, obj.assigned_to_id)
+        grouped[key].append(obj)
+    return render_template("objectives.html",grouped_objectives=grouped,role="admin",state="admin")
+
+@admin_bp.route("/review/<int:objective_id>", methods=["POST", "GET"])
+@login_required
+@admin_required
+def review_objective(objective_id):
+    objective = AdminObjective.query.get_or_404(objective_id)
+    if request.method == "POST":
+        review_text = request.form.get("review")
+        score_raw = request.form.get("score")
+        if not all([review_text, score_raw]):
+            flash("Both Review and Score are needed", "error")
+            return redirect(request.url)
+        try:
+            score = int(score_raw)
+        except ValueError:
+            flash("Score must be a number", "error")
+            return redirect(request.url)
+        weighted_score = (score * objective.weight) / objective.score_range
+        r = AdminReview(
+            review=review_text,
+            score=score,
+            weighted_score=weighted_score
+        )
+        objective.admin_review = r
+        db.session.commit()
+        return redirect(url_for("admin.objective_overview", objective_id=objective.id))
+    return render_template("review.html", objective=objective, role="admin", state="admin",Title="Review")
+
+@admin_bp.route("/edit_review/<int:objective_id>", methods=["POST", "GET"])
+@login_required
+@admin_required
+def edit_review(objective_id):
+    objective = AdminObjective.query.get_or_404(objective_id)
+    review = objective.admin_review
+    if request.method == "POST":
+        review_text = request.form.get("review")
+        score_raw = request.form.get("score")
+        if not all([review_text, score_raw]):
+            flash("Both Review and Score are needed", "error")
+            return redirect(request.url)
+        try:
+            score = int(score_raw)
+        except ValueError:
+            flash("Score must be a number", "error")
+            return redirect(request.url)
+        weighted_score = (score * objective.weight) / objective.score_range
+
+        review.review = review_text
+        review.score = score
+        review.weighted_score = weighted_score
+        db.session.commit()
+        return redirect(url_for("admin.objective_overview", objective_id=objective.id))
+    return render_template("review.html", objective=objective,review=review, role="admin", state="admin",Title="Edit Review")
+
+
+@admin_bp.route("/objectives_overview/<int:objective_id>")
+@login_required
+@admin_required
+def objectives_overview(objective_id):
+    objective = AdminObjective.query.get_or_404(objective_id)
+    batch = objective.batch
+    employee = objective.assigned_to
+    objectives = AdminObjective.query.filter_by(batch_id=batch.id, assigned_to_id=employee.id).all()
+    total_weighted = 0
+    for obj in objectives:
+        if obj.reviews:  
+            total_weighted += obj.reviews.weighted_score
+    return render_template("objectives_overview.html",batch=batch,employee=employee,objectives=objectives,total_weighted=total_weighted,role="admin",state="admin")
+
+@admin_bp.route("/objective_overview/<int:objective_id>/<assigned_by_id>")
+@login_required
+@admin_required
+def objective_overview(objective_id, assigned_by_id):
+    assigned_by = Authentication.query.get_or_404(assigned_by_id)
+    if hasattr(assigned_by, "objectives") and assigned_by.objectives:
+        objective = Objective.query.get_or_404(objective_id)
+    elif hasattr(assigned_by, "admin_objectives") and assigned_by.admin_objectives:
+        objective = AdminObjective.query.get_or_404(objective_id)
+    else:
+        abort(404) 
+    batch = objective.batch
+    title = batch.title
+    year = batch.year
+    employee = objective.assigned_to.name
+    return render_template(
+        "objective_overview.html",
+        year=year,
+        title=title,
+        employee=employee,
+        role="admin",
+        state="admin"
+    )
+
+
+@admin_bp.route("/delete_objective/<int:objective_id>", methods=["POST", "GET"])
+@login_required
+@admin_required
+def delete_objective(objective_id):
+    objective = AdminObjective.query.get_or_404(objective_id)
+    if request.method == "POST":
+        db.session.delete(objective)
+        db.session.commit()
+        flash(f"Objective '{objective.objective}' deleted successfully", "success")
+        return redirect(url_for("admin.objectives"))
+    return render_template("delete_objective.html", objective=objective, role="admin", state="admin")
+
+
+project/app/base/__init__.py
+
+from .routes import base_bp
+
+project/app/base/routes.py
+
+from flask import Blueprint,request,url_for,session,flash,get_flashed_messages,render_template,redirect
+from app.models import Employee,Authentication,TeamLeader,Department,Administrator
+from app import db
+from werkzeug.security import check_password_hash,generate_password_hash
+from sqlalchemy.exc import IntegrityError
+from app.utils import login_required
+import os
+
+base_bp = Blueprint("base",__name__)
+
+@base_bp.route("/",methods=["POST","GET"])
+def login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+        if not email or not password:
+            flash("Username and password are required", "error")
+            return redirect(url_for("base.login"))
+        auth = Authentication.query.filter_by(email=email).first()
+        if not auth:
+            flash("account linked to this email does not exist","error")
+            return redirect(url_for("base.login"))
+        hashed_pw = auth.password
+        if check_password_hash(hashed_pw,password):
+            flash("login succesful","success")
+            if auth.administrator:
+                role = "admin"
+            elif auth.team_leader:
+                role = "team_leader"
+            elif auth.employee:
+                role = "employee"
+            
+            session.clear()
+            session["user_id"] = auth.id
+            session["role"] = role
+            session["email"] = auth.email
+            if role == "employee":
+                return redirect(url_for("employee.home"))
+            elif role == "team_leader":
+                return redirect(url_for("team_leader.home"))
+            elif role == "admin":
+                return redirect(url_for("admin.home"))
+        flash("invalid password","error")
+        return redirect(url_for("base.login"))
+    return render_template("login.html")
+
+@base_bp.route("/signup",methods=["POST","GET"])
+def signup():
+    departments = ["HCM","SCM","Procurement","Finance","Administration","Business Development","Technical"]
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        email = request.form.get("email")
+        entered_entry_code = request.form.get("entry_code")
+        entry_code = os.getenv("ENTRY_CODE")
+        if not all([username, password, email]):
+            flash("Username , Email and Password are required", "error")
+            return redirect(url_for("base.signup"))
+        if not entered_entry_code == entry_code:
+            flash("incorrect entry code","error")
+            return redirect(request.url)
+        role = request.form.get("role")
+
+        hashed_pw = generate_password_hash(password)
+        auth = Authentication(email=email,password=hashed_pw,name=username,role=role)
+        if role == "admin":
+            administrator = Administrator(name=username)
+            auth.administrator = administrator
+            db.session.add(administrator)
+            for dep in departments:
+                administrator.departments.append(Department(name=dep))
+        else:
+            department = request.form.get("department")
+            if role == "team_leader":
+                user = TeamLeader(name=username)
+                dpt = Department.query.filter_by(name=department).first()
+                if not dpt:
+                    dept = Department(name=department)
+                    user.department = dept
+                else:
+                    user.department = dpt
+                auth.team_leader = user
+                
+            if role == "employee":
+                user = Employee(name=username)
+                dpt = Department.query.filter_by(name=department).first()
+                if not dpt:
+                    dept = Department(name=department)
+                    user.department = dept
+                else:
+                    user.department = dpt
+                auth.employee = user
+        
+        db.session.add(auth)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            flash("Account already exists or invalid data", "error")
+            db.session.rollback()
+            return redirect(url_for("base.signup"))
+        flash("signup succesful","success")
+        return redirect(url_for("base.login"))
+    return render_template("signup.html",departments=departments)
+
+
+project/app/static/style.css
+
+.btn {
+  display: inline-block;
+  padding: 10px 16px;
+  background: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+}
+.obj-style {
+  background-color: green;
+  max-width: 150px;
+  padding: 10px;
+  margin: 20px;
+  text-decoration: none;
+  border: black 2px solid;
+  border-radius: 5px;
+  color: black;
+  width: fit-content;
+  display: block;
+  margin-left: auto;
+}
+.objective-block {
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    background-color: #ffffff;
+    position: relative;
+    width: 100%;
+    max-width: 700px;
+}
+.objective-container {
+    border: 2px solid #e0e0e0;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 10px;
+    background-color: #fafafa;
+}
+.action-container {
+    max-width: 800px;
+    margin: 20px auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-end; 
+}
+.nav-btn {
+    display: flex;
+    width: 50%;
+    border-bottom: 3px solid black;
+    background: none;
+    cursor: pointer;
+}
+
+.nav-btn.active {
+    border-bottom: 3px solid green;
+}
+.assignedbtn.active{
+    border-bottom: 3px solid green;
+}
+.content{
+    display: none;
+}
+.content.active{
+    display: block;
+}
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    margin-top: 10px;
+}
+.role-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;        
+    margin-bottom: 6px;
+    cursor: pointer;
+}
+
+project/app/team_leader/__init__.py
+
+from .routes import team_leader_bp
+
+project/app/team_leader/routes.py
+
+from flask import Blueprint,url_for,render_template,redirect,flash,get_flashed_messages,request,session,abort
+from app.models import Authentication,Objective,TeamLeader,Employee,Review,ObjectiveBatch,AdminObjective
+from app import db
+from sqlalchemy.exc import IntegrityError
+from app.utils import login_required,team_leader_required
+from collections import defaultdict
+
+team_leader_bp = Blueprint("team_leader",__name__,url_prefix="/Team-Leader")
+
+@team_leader_bp.route("/",methods=["GET"])
+@login_required
+@team_leader_required
+def home():
+    return render_template("home.html",state="team_leader",role="team_leader")
+
+@team_leader_bp.route("/logout",methods=["POST","GET"])
+@login_required
+@team_leader_required
+def logout():
+    if request.method == "POST":
+        session.pop("role",None)
+        session.pop("user_id",None)
+        return redirect(url_for("base.login"))
+    return render_template("logout.html",state="team_leader",role="team_leader")
+
+@team_leader_bp.route("/delete_account",methods=["POST","GET"])
+@login_required
+@team_leader_required
+def delete_account():
+    if request.method == "POST":
+        user_id = session.get("user_id")
+        user = Authentication.query.filter_by(id=user_id).first()
+        session.pop("role",None)
+        session.pop("user_id",None)
+        db.session.delete(user)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            flash("username does not exist","error")
+            db.session.rollback()
+            return redirect(url_for("base.signup"))
+        flash("account deleted succesfully","success")
+        return redirect(url_for("base.login"))
+    return render_template("delete_account.html",state="team_leader",role="team_leader")
+
+@team_leader_bp.route("/add_objectives", methods=["POST", "GET"])
+@login_required
+@team_leader_required
+def add_objective():
+    authen = Authentication.query.get(session["user_id"])
+    if authen:
+        department_head = authen.team_leader
+    if request.method == "POST":
+        title = request.form.get("title")
+        year = request.form.get("year")
+
+        objectives = request.form.getlist("objectives[]")
+        categories = request.form.getlist("categories[]")
+        weights = request.form.getlist("weights[]")
+        score_ranges = request.form.getlist("score_ranges[]")
+        assigned_tos = request.form.getlist("assigned_tos[]")
+
+        batch = ObjectiveBatch(title=title,year=int(year))
+        db.session.add(batch)
+        db.session.flush()  
+
+        for obj, cat, weight, score_range in zip(
+            objectives, categories, weights, score_ranges
+        ):
+            for emp_id in assigned_tos:
+                emp_auth = Authentication.query.get(int(emp_id))
+                objective = Objective(
+                    objective=obj,
+                    category=cat,
+                    weight=int(weight),
+                    score_range=int(score_range),
+                    assigned_to=emp_auth.employee,
+                    assigned_by=department_head,
+                    batch=batch
+                )
+                db.session.add(objective)
+        db.session.commit()
+        flash("Objectives created successfully", "success")
+        return redirect(url_for("team_leader.objectives"))
+
+    department = department_head.department
+    employes = department.employees
+
+    employee_names = [emp.authentication.name for emp in employes]
+    employees = [emp.authentication for emp in employes]
+
+    return render_template(
+        "add_objective.html",
+        role="team_leader",
+        state="team_leader",
+        employee_names=employee_names,
+        employees=employees,
+        Title="ADD OBJECTIVES"
+    )
+
+@team_leader_bp.route("/edit_objectives/<int:objective_id>", methods=["POST", "GET"])
+@login_required
+@team_leader_required
+def edit_objective(objective_id):
+    team_leader_email = session.get("email")
+    department_head = Authentication.query.filter_by(email=team_leader_email).first().department_head
+    obj = Objective.query.filter_by(id=objective_id).first_or_404()
+    if obj.assigned_by != department_head:
+        abort(403)
+    if request.method == "POST":
+        title = request.form.get("title")
+        year = int(request.form.get("year"))
+        objective_text = request.form.get("objective")
+        category = request.form.get("category")
+        weight = int(request.form.get("weight"))
+        score_range = int(request.form.get("score_range"))
+        emp_id = int(request.form.get("assigned_to"))
+        assigned_to = Authentication.query.get_or_404(emp_id).employee
+        obj.batch.title = title
+        obj.batch.year = year
+        obj.objective = objective_text
+        obj.category = category
+        obj.weight = weight
+        obj.score_range = score_range
+        obj.assigned_to = assigned_to
+
+        db.session.commit()
+        flash(f"Objective {title} edited successfully", "success")
+        return redirect(url_for("team_leader.objectives"))
+
+    department = department_head.department
+    employees = department.employees
+    objective = Objective.query.filter_by(id=objective_id).first_or_404()
+    employee_names = [emp.authentication.name for emp in employees]
+    return render_template("add_objective.html",role="team_leader",state="team_leader",employee_names=employee_names,objective=objective,Title="EDIT OBJECTIVES")
+
+
+@team_leader_bp.route("/objectives")
+@login_required
+@team_leader_required
+def objectives():
+    auth = Authentication.query.get(session["user_id"])
+    grouped = defaultdict(list)
+
+    for obj in auth.team_leader.objectives:
+        key = (obj.batch.title, obj.assigned_to_id)
+
+        grouped[key].append(obj)
+
+    return render_template(
+        "objectives.html",
+        grouped_objectives=grouped,
+        role="team_leader",
+        state="team_leader"
+    )
+
+@team_leader_bp.route("/review/<int:objective_id>", methods=["POST", "GET"])
+@login_required
+@team_leader_required
+def review_objective(objective_id):
+    objective = Objective.query.get_or_404(objective_id)
+    if request.method == "POST":
+        review_text = request.form.get("review")
+        score_raw = request.form.get("score")
+        if not all([review_text, score_raw]):
+            flash("Both Review and Score are needed", "error")
+            return redirect(request.url)
+        try:
+            score = int(score_raw)
+        except ValueError:
+            flash("Score must be a number", "error")
+            return redirect(request.url)
+        weighted_score = (score * objective.weight) / objective.score_range
+        r = Review(
+            review=review_text,
+            score=score,
+            weighted_score=weighted_score
+        )
+        objective.reviews = r
+        db.session.commit()
+        flash("reviewed successfully","success")
+        return redirect(url_for("team_leader.objectives_overview", objective_id=objective.id))
+    return render_template("review.html", objective=objective, role="team_leader", state="team_leader")
+
+@team_leader_bp.route("/edit_review/<int:objective_id>", methods=["POST", "GET"])
+@login_required
+@team_leader_required
+def edit_review(objective_id):
+    objective = Objective.query.get_or_404(objective_id)
+    review = objective.review
+    if request.method == "POST":
+        review_text = request.form.get("review")
+        score_raw = request.form.get("score")
+        if not all([review_text, score_raw]):
+            flash("Both Review and Score are needed", "error")
+            return redirect(request.url)
+        try:
+            score = int(score_raw)
+        except ValueError:
+            flash("Score must be a number", "error")
+            return redirect(request.url)
+        weighted_score = (score * objective.weight) / objective.score_range
+
+        review.review = review_text
+        review.score = score
+        review.weighted_score = weighted_score
+        db.session.commit()
+        return redirect(url_for("team_leader.objectives_overview", objective_id=objective.id))
+    return render_template("review.html", objective=objective,review=review, role="team_leader", state="team_leader")
+
+
+@team_leader_bp.route("/objectives_overview/<int:objective_id>")
+@login_required
+@team_leader_required
+def objectives_overview(objective_id):
+    objective = Objective.query.get_or_404(objective_id)
+    batch = objective.batch
+    employee = objective.assigned_to
+    objectives = Objective.query.filter_by(batch_id=batch.id, assigned_to_id=employee.id).all()
+    total_weighted = 0
+    for obj in objectives:
+        if obj.review:  
+            total_weighted += obj.review.weighted_score
+    return render_template("objectives_overview.html",batch=batch,employee=employee,objectives=objectives,total_weighted=total_weighted,role="team_leader",state="team_leader")
+
+@team_leader_bp.route("/objective_overview/<int:objective_id>/<assigned_by_id>")
+@login_required
+@team_leader_required
+def objective_overview(objective_id, assigned_by_id):
+    assigned_by_auth = Authentication.query.get_or_404(assigned_by_id)
+    if assigned_by_auth.role == "team_leader":
+        assigned_by = assigned_by_auth.team_leader
+        objective = Objective.query.get_or_404(objective_id)
+    elif assigned_by_auth.role == "admin":
+        assigned_by = assigned_by_auth.administrator
+        objective = AdminObjective.query.get_or_404(objective_id)
+    else:
+        abort(404)
+    batch = objective.batch
+    title = batch.title
+    year = batch.year
+    employee = objective.assigned_to.name
+
+    return render_template(
+        "objective_overview.html",
+        year=year,
+        title=title,
+        objective=objective,
+        employee=employee,
+        role="team_leader",
+        state="team_leader"
+    )
+
+
+@team_leader_bp.route("/delete_objective/<int:objective_id>/<assigned_by_id>", methods=["POST", "GET"])
+@login_required
+@team_leader_required
+def delete_objective(objective_id,assigned_by_id):
+    assigned_by_auth = Authentication.query.get_or_404(assigned_by_id)
+    if assigned_by_auth.role == "team_leader":
+        assigned_by = assigned_by_auth.team_leader
+        objective = Objective.query.get_or_404(objective_id)
+    elif assigned_by_auth.role == "admin":
+        assigned_by = assigned_by_auth.administrator
+        objective = AdminObjective.query.get_or_404(objective_id)
+    else:
+        abort(404)
+    if request.method == "POST":
+        db.session.delete(objective)
+        db.session.commit()
+        flash(f"Objective '{objective.objective}' deleted successfully", "success")
+        return redirect(url_for("team_leader.objectives"))
+    return render_template("delete_objective.html", objective=objective, role="team_leader", state="team_leader")
+
+@team_leader_bp.route("/feedback/<int:objective_id>/<assigned_by_id>", methods=["GET", "POST"])
+@login_required
+@team_leader_required
+def feedback(objective_id,assigned_by_id):
+    assigned_by_auth = Authentication.query.get_or_404(assigned_by_id)
+    if assigned_by_auth.role == "team_leader":
+        assigned_by = assigned_by_auth.team_leader
+        objective = Objective.query.get_or_404(objective_id)
+    elif assigned_by_auth.role == "admin":
+        assigned_by = assigned_by_auth.administrator
+        objective = AdminObjective.query.get_or_404(objective_id)
+    else:
+        abort(404)
+
+    if objective.assigned_to.authentication.id != session["user_id"]:
+        flash("Unauthorized", "error")
+        return redirect(url_for("employee.objectives"))
+    elif admin_objective.assigned_to.authentication.id != session["user_id"]:
+        flash("Unauthorized", "error")
+        return redirect(url_for("employee.objectives"))
+
+    if request.method == "POST":
+        feedback_text = request.form.get("feedback")
+
+        if not feedback_text:
+            flash("Feedback is required", "error")
+            return redirect(request.url)
+
+        fb = Feedback(feedback=feedback_text)
+        if objective:
+            objective.reviews.feedback = fb
+        else:
+            admin_objective.admin_reviews.feedback = fb
+        db.session.commit()
+
+        return redirect(
+            url_for("employee.objective_overview", objective_id=objective.id)
+        )
+
+    return render_template(
+        "feedback.html",
+        objective=objective,
+        role="employee",
+        state="employee",
+        Title="Feedback"
+    )
+
+@team_leader_bp.route("/edit_feedback/<int:objective_id>/<assigned_by_id>", methods=["GET", "POST"])
+@login_required
+@team_leader_required
+def edit_feedback(objective_id,assigned_by_id):
+    assigned_by_auth = Authentication.query.get_or_404(assigned_by_id)
+    if assigned_by_auth.role == "team_leader":
+        assigned_by = assigned_by_auth.team_leader
+        objective = Objective.query.get_or_404(objective_id)
+    elif assigned_by_auth.role == "admin":
+        assigned_by = assigned_by_auth.administrator
+        admin_objective = AdminObjective.query.get_or_404(objective_id)
+    else:
+        abort(404)
+    if objective.assigned_to.authentication.id != session["user_id"]:
+        flash("Unauthorized", "error")
+        return redirect(url_for("employee.objectives"))
+    elif admin_objective.assigned_to.authentication.id != session["user_id"]:
+        flash("Unauthorized", "error")
+        return redirect(url_for("employee.objectives"))
+    if request.method == "POST":
+        feedback_text = request.form.get("feedback")
+        if not feedback_text:
+            flash("Feedback is required", "error")
+            return redirect(request.url)
+        if objective:
+            objective.review.feedbacks.feedback = feedback_text
+        else:
+            admin_objective.admin_review.feedback.feedback = feedback_text
+        db.session.commit()
+        return redirect(url_for("employee.objectives_overview", objective_id=objective.id))
+    if objective:
+        review = objective.review
+        feedback_text = review.feedback.feedback
+    else:
+        admin_review = objective.admin_review
+        feedback_text = admin_review.feedback.feedback
+    return render_template("feedback.html",objective=objective,feedback=feedback_text,role="employee",state="employee",Title="Edit Feedback")
+
+
+######################################
+project/app/templates/add_objective.html
+
+{% extends "base.html" %}
+{% set page_title = Title %}
+
+{% block content %}
+<h2>{{ Title }}</h2>
+
+<form method="POST" onsubmit="return validateWeights()">
+    <label><b>Title (shared by all objectives)</b></label>
+    <input type="text" name="title" required>
+    <label>Years</label>
+    <input type="number" name="year" required>
+    <hr>
+    <div id="objectives-container">
+        <div class="objective-block">
+            <h4>Objective 1</h4>
+            <label>Objective</label>
+            <input type="text" name="objectives[]" required>
+            <label>Description</label>
+            <textarea name="descriptions[]" required></textarea>
+            <label>Category</label>
+            <input type="text" name="categories[]" required>
+            <label>Weight (%)</label>
+            <input type="number" name="weights[]" required>
+            <label>Score Range</label>
+            <input type="number" name="score_ranges[]" required>
+            <hr>
+        </div>
+    </div>
+
+    <!-- ADD BUTTON -->
+    <button type="button" onclick="addObjective()">➕ Add Another Objective</button>
+
+    <br><br>
+
+    <!-- ASSIGNMENT -->
+    <label><b>Assign To (Employees)</b></label>
+    {% if objective %}
+    <select name="assigned_tos[]" required></select>
+    {% else %}
+    <select name="assigned_tos[]" multiple required>
+    {% endif %}
+    {% if employees %}
+    1
+    {% for emp in employees %}
+        <option value="{{ emp.id }}">{{ emp.name }}</option>
+    {% endfor %}
+    {% endif %}
+    {% if team_leaders %}
+    3
+    {% for tml in team_leaders %}
+        <option value="{{ tml.authentication.id }}">{{ tml.authentication.name }}</option>
+    {% endfor %}
+    {% endif %}
+    </select>
+    <p><small>Hold Ctrl (or Cmd on Mac) to select multiple employees</small></p>
+
+    <br><br>
+
+    <button type="submit">Submit Objectives</button>
+</form>
+
+<script>
+let count = 1;
+
+function addObjective() {
+    count++;
+    const container = document.getElementById("objectives-container");
+    const block = document.createElement("div");
+    block.className = "objective-block";
+    block.innerHTML = `
+        <h4>Objective ${count}</h4>
+        <label>Objective</label>
+        <input type="text" name="objectives[]" required>
+        <label>Description</label>
+        <textarea name="descriptions[]" required></textarea>
+        <label>Category</label>
+        <input type="text" name="categories[]" required>
+        <label>Weight (%)</label>
+        <input type="number" name="weights[]" required>
+        <label>Score Range</label>
+        <input type="number" name="score_ranges[]" required>
+        <hr>
+    `;
+    container.appendChild(block);
+}
+
+function validateWeights() {
+    const weights = document.getElementsByName("weights[]");
+    let total = 0;
+    for (let i = 0; i < weights.length; i++) {
+        total += Number(weights[i].value || 0);
+    }
+    if (total !== 100) {
+        alert("Total weight must equal 100%. Current total: " + total);
+        return false;
+    }
+    return true;
+}
+</script>
+
+{% endblock %}
+
+
+project/app/templates/base.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static' , filename = 'style.css') }}">
+    <title>{{ page_title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .page-title {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-weight: bold;
+            font-style: italic;
+            font-size: 22px;
+            color: black;
+            text-transform: uppercase;
+        }
+
+        .container {
+            width: 80%;
+            margin: 100px auto;
+        }
+
+        .flash {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .flash.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .flash.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        nav a {
+            margin-right: 15px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            max-width: 100px
+        }
+
+        input, select, textarea {
+            width: 100%;
+            max-width: 700px;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+
+<div style="position: relative; height: 80px; margin-bottom: 20px;">
+        <!-- Logo at top-left -->
+        <div style="position: absolute; top: 0; left: 20px;">
+            <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Logo" style="height: 100px;">
+        </div>
+
+        <!-- Page title at top-right -->
+        <div class="page-title">{{ page_title }}</div>
+    </div>
+
+<div class="container">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+    <nav style="margin-bottom: 30px;">
+    <a href="{{ url_for('admin.home') if state=='admin' or role=='admin' else (url_for('team_leader.home') if state=='team_leader' or role=='team_leader' else url_for('employee.home')) }}">Home</a>
+    <a href="{{ url_for('admin.objectives') if state=='admin' or role=='admin' else (url_for('team_leader.objectives') if state=='team_leader' or role=='team_leader' else url_for('employee.objectives')) }}">Objectives</a>
+    <a href="{{ url_for('admin.logout') if state=='admin' or role=='admin' else (url_for('team_leader.logout') if state=='team_leader' or role=='team_leader' else url_for('employee.logout')) }}">Logout</a>
+
+    </nav>
+    {% block content %}{% endblock %}
+</div>
+
+</body>
+</html>
+
+project/app/templates/delete_account.html
+
+{% extends "base.html" %}
+{% set page_title = "DELETE ACCOUNT" %}
+
+{% block content %}
+<h2>Delete {{ state|capitalize }} Account</h2>
+
+<form method="POST">
+    <label>Confirm Password</label>
+    <input type="password" name="password" required>
+
+    <button type="submit">Delete Account</button>
+</form>
+{% endblock %}
+
+
+project/app/templates/delete_objective.html
+
+{% extends "base.html" %}
+{% set page_title = "DELETE OBJECTIVE" %}
+
+{% block content %}
+<div class="card">
+    <h2>Confirm Deletion of {{ objective.objective }}</h2>
+    <p>
+        Are you sure you want to delete this objective?
+        <br><br>
+        <strong>This action cannot be undone.</strong>
+    </p>
+
+    <form method="POST">
+        <div class="actions">
+            <button type="submit" class="delete-btn">Yes, Delete</button>
+            <a href="{{ url_for('admin.objectives') if state=='admin' or role=='admin' else url_for('team_leader.objectives') }}" class="cancel-btn">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
+project/app/templates/feedback.html
+
+{% extends "base.html" %}
+{% set page_title = Title %}
+
+{% block content %}
+<h2>{{ objective.title }}</h2>
+
+
+<p><b>Review:</b> {{ objective.review.review }}</p>
+<p><b>Score:</b> {{ objective.review.score }}</p>
+
+{% if feedback %}
+<form method="POST">
+    <label>Feedback</label>
+    <textarea name="feedback">{{feedback}}</textarea>
+
+    <button type="submit">Edit Feedback</button>
+</form>
+{% else %}
+<form method="POST">
+    <label>Feedback (optional)</label>
+    <textarea name="feedback"></textarea>
+
+    <button type="submit">Submit Feedback</button>
+</form>
+
+{% endif %}
+
+{% endblock %}
+
+
+project/app/templates/home.html
+
+{% extends "base.html" %}
+{% set page_title = "HOME" %}
+
+{% block content %}
+
+
+<h2>Welcome {{ "Team leader" if state == "team_leader" else "Employee" if state == "employee"  else "Admin" if state == "admin"   }}</h2>
+<p>Select an option from the navigation bar.</p>
+
+{% endblock %}
+
+
+project/app/templates/login.html
+
+{% extends "base.html" %}
+{% set page_title = "LOGIN" %}
+
+{% block content %}
+<h2>Login</h2>
+
+<form method="POST">
+    <label>Email</label>
+    <input type="email" name="email" required>
+
+    <label>Password</label>
+    <input type="password" name="password" required>
+
+    <button type="submit">Login</button>
+</form>
+
+<p>
+    Don’t have an account?
+    <a href="{{ url_for('base.signup') }}">Sign up</a>
+</p>
+{% endblock %}
+
+
+project/app/templates/logout.html
+
+{% extends "base.html" %}
+{% set page_title = state|upper ~ " LOGOUT" %}
+
+{% block content %}
+<h2>{{ state|capitalize }} Logout</h2>
+
+<form method="POST">
+    <button type="submit">Logout</button>
+</form>
+{% endblock %}
+
+
+project/app/templates/objective_overview.html
+
+{% extends "base.html" %}
+{% set page_title = "OBJECTIVE OVERVIEW" %}
+
+{% block content %}
+
+    {# ================= REVIEW DISPLAY ================= #}
+    {% if objective.review %}
+        <div style="background:#fff4ef; padding:15px; border-radius:8px; margin-bottom:15px;">
+            <strong>Objective:</strong> {{ objective.objective }} <br>
+            <strong>Admin Review</strong><br>
+            Score: {{ objective.review.score }} <br>
+            Comment: {{ objective.review.review or "No comment" }}
+        </div>
+
+        {% if objective.review.feedback %}
+            <div style="background:#eef7ff; padding:15px; border-radius:8px; margin-bottom:20px;">
+                <strong>Employee Feedback</strong><br>
+                {{ objective.review.feedback.feedback }}
+            </div>
+        {% endif %}
+    {% endif %}
+
+
+    {# ================= GIVE REVIEW ================= #}
+    {% if not objective.review %}
+        {% if role == "admin" %}
+            <a href="{{ url_for(
+                'admin.review_objective',
+                objective_id=objective.id,
+                assigned_by_id=objective.assigned_by.authentication.id
+            ) }}"
+               class="obj-style"
+               style="margin-left:200px;padding-left: 20px;">
+                Give Review for "{{ objective.objective }}"
+            </a>
+
+        {% elif role == "team_leader" %}
+            <a href="{{ url_for(
+                'team_leader.review_objective',
+                objective_id=objective.id,
+                assigned_by_id=objective.assigned_by.authentication.id
+            ) }}"
+               class="obj-style"
+               style="margin-left:200px;padding-left: 20px;">
+                Give Review for "{{ objective.objective }}"
+            </a>
+        {% endif %}
+    {% endif %}
+
+    <br><br><br>
+
+
+    {# ================= GIVE FEEDBACK ================= #}
+    {% if objective.review and objective.review.review and not objective.review.feedback %}
+        {% if role == "employee" %}
+            <a href="{{ url_for(
+                'employee.feedback',
+                objective_id=objective.id,
+                assigned_by_id=objective.assigned_by.authentication.id
+            ) }}"
+               class="obj-style">
+                Give Feedback for "{{ objective.objective }}"
+            </a>
+
+        {% elif role == "team_leader" %}
+            <a href="{{ url_for(
+                'team_leader.feedback',
+                objective_id=objective.id,
+                assigned_by_id=objective.assigned_by.authentication.id
+            ) }}"
+               class="obj-style">
+                Give Feedback for "{{ objective.objective }}"
+            </a>
+        {% endif %}
+    {% endif %}
+
+    <br><br>
+
+
+    {# ================= DELETE OBJECTIVE ================= #}
+    {% if role == "admin" %}
+        <a href="{{ url_for(
+            'admin.delete_objective',
+            objective_id=objective.id,
+            assigned_by_id=objective.assigned_by.authentication.id
+        ) }}"
+           class="obj-style"
+           style="background-color:red; color:white; margin-right:10px;">
+            Delete "{{ objective.objective }}"
+        </a>
+    {% endif %}
+
+    {% if role == "team_leader" %}
+        <a href="{{ url_for(
+            'team_leader.delete_objective',
+            objective_id=objective.id,
+            assigned_by_id=objective.assigned_by.authentication.id
+        ) }}"
+           class="obj-style"
+           style="background-color:red; color:white; margin-right:10px;">
+            Delete "{{ objective.objective }}"
+        </a>
+    {% endif %}
+
+{% endblock %}
+
+
+project/app/templates/objectives_overview.html
+
+{% extends "base.html" %}
+{% set page_title = "OBJECTIVES OVERVIEW" %}
+
+{% block content %}
+<h2 style="font-weight: bold; margin-bottom: 20px;">{{ batch.title }}</h2>
+
+<p><strong>Employee:</strong> {{ employee.name }}</p><p>{{"Team Leader" if state=="admin" else " "}}</p>
+
+<table style="width:100%; max-width:800px; border-collapse: collapse; background-color: #f5e1dc; border-radius: 8px; overflow: hidden; margin-bottom: 30px;">
+<tr>
+    <th style="padding: 12px; border: 1px solid #ccc;">#</th>
+    <th style="padding: 12px; border: 1px solid #ccc;">Objective</th>
+    <th style="padding: 12px; border: 1px solid #ccc;">Category</th>
+    <th style="padding: 12px; border: 1px solid #ccc;">Score</th>
+    <th style="padding: 12px; border: 1px solid #ccc;">Weight</th>
+    <th style="padding: 12px; border: 1px solid #ccc;">Weighted Score</th>
+</tr>
+
+{% for obj in objectives %}
+<tr>
+    <td style="padding: 12px; border: 1px solid #ccc;">{{ loop.index }}</td>
+    <td style="padding: 12px; border: 1px solid #ccc;">
+        <a href="{% if role == 'admin' %}
+            {{ url_for('admin.objective_overview', objective_id=obj.id, assigned_by_id=obj.assigned_by.authentication.id) }}
+         {% elif role == 'team_leader' %}
+            {{ url_for('team_leader.objective_overview', objective_id=obj.id, assigned_by_id=obj.assigned_by.authentication.id) }}
+         {% elif role == 'employee' %}
+            {{ url_for('employee.objective_overview', objective_id=obj.id, assigned_by_id=obj.assigned_by.authentication.id) }}
+         {% endif %}" style="color: red; text-decoration: none;">
+         {{ obj.objective }}
+        </a>
+    
+    </td>
+
+    <td style="padding: 12px; border: 1px solid #ccc;">{{ obj.category }}</td>
+    <td style="padding: 12px; border: 1px solid #ccc;">
+        {{ obj.review.score if obj.review else "-" }}
+    </td>
+    <td style="padding: 12px; border: 1px solid #ccc;">{{ obj.weight }}</td>
+    <td style="padding: 12px; border: 1px solid #ccc;">
+        {{ obj.review.weighted_score if obj.review else "-" }}
+    </td>
+</tr>
+{% endfor %}
+
+<!-- Total row -->
+<tr style="font-weight: bold; background-color:#e0b7a4;">
+    <td colspan="5" style="padding:12px; border:1px solid #ccc; text-align:right;">Total Weighted Score</td>
+    <td style="padding:12px; border:1px solid #ccc;">{{ total_weighted }}</td>
+</tr>
+</table>
+
+<hr>
+
+{% endblock %}
+
+project/app/templates/objectives.html
+
+{% extends "base.html" %}
+{% set page_title = "OBJECTIVES" %}
+
+{% block content %}
+
+{% if role == "admin" or role == "team_leader" %}
+<a href="{{ url_for('admin.add_objective') if role=='admin' else url_for('team_leader.add_objective') if role=='team_leader' }}" class="obj-style">Add Objective</a>
+{% endif %}
+
+<h2>Objectives</h2>
+
+{% if state != "admin" %}
+
+<div style="display: flex;">
+    <button onclick="showObjectives(this,'.assignedbtn','.content','assigned_obj')" class="assignedbtn active">
+        Assigned
+    </button>
+    <button onclick="showObjectives(this,'.assignedbtn','.content','received_obj')" class="assignedbtn">
+        Received
+    </button>
+</div>
+
+
+
+<div id="assigned_obj" class="content active">
+    {% for (title, employee_id), objs in grouped_objectives.items() %}
+    {% set ns = namespace(reviewed=false) %}
+    {% for obj in objs %}
+    {% if obj.reviews %}
+    {% set ns.reviewed = true %}
+    {% endif %}
+    {% endfor %}
+
+    {% if role == "team_leader" %}
+    <a href="{{ url_for('team_leader.objectives_overview', objective_id=objs[0].id) }}" style="text-decoration:none;">
+        <div class="obj-card" style="background-color:white;width:100%;max-width:700px;border:2px solid black;border-radius:10px;
+            padding:20px;
+            margin:20px;
+            box-shadow:0 8px 20px rgba(0,0,0,0.3);
+            display:grid;
+            grid-template-columns:80% 20%;
+            overflow:hidden;
+            border-right: 10px solid {{ 'green' if ns.reviewed else 'none' }};">
+            <div style="overflow:hidden; text-overflow:ellipsis;">
+            {{ title }}
+            </div>
+            <div style="color:green; padding-left:20px;">
+                Assigned to: {{ objs[0].assigned_to.name }}
+            </div>
+        </div>
+    </a>
+    
+    {% elif role == "employee" %}
+    <a href="{{ url_for('employee.objectives_overview', objective_id=objs[0].id) }}" style="text-decoration:none;">
+        <div class="obj-card"
+         style="
+            background-color:white;
+            width:100%;
+            max-width:700px;
+            border:2px solid black;
+            border-radius:10px;
+            padding:20px;
+            margin:20px;
+            box-shadow:0 8px 20px rgba(0,0,0,0.3);
+            display:grid;
+            grid-template-columns:80% 20%;
+            overflow:hidden;
+            border-right: 10px solid {{ 'green' if ns.reviewed else 'none' }};">
+            <div style="overflow:hidden; text-overflow:ellipsis;">
+                {{ title }}
+            </div>
+            <div style="color:green; padding-left:20px;">
+                Assigned to: {{ objs[0].assigned_to.name }}
+            </div>
+        </div>
+    </a>
+    {% endif %}
+    {% endfor %}
+</div>
+
+<div id="received_obj" class="content">
+    {% for (title, employee_id), objs in grouped_objectives.items() %}
+    {% set ns = namespace(reviewed=false) %}
+    {% for obj in objs %}
+    {% if obj.reviews %}
+    {% set ns.reviewed = true %}
+    {% endif %}
+    {% endfor %}
+
+    {% if role == "team_leader" %}
+    <a href="{{ url_for('team_leader.objectives_overview', objective_id=objs[0].id) }}" style="text-decoration:none;">
+        <div class="obj-card"
+         style="
+            background-color:white;
+            width:100%;
+            max-width:700px;
+            border:2px solid black;
+            border-radius:10px;
+            padding:20px;
+            margin:20px;
+            box-shadow:0 8px 20px rgba(0,0,0,0.3);
+            display:grid;
+            grid-template-columns:80% 20%;
+            overflow:hidden;
+            border-right: 10px solid {{ 'green' if ns.reviewed else 'none' }};">
+            <div style="overflow:hidden; text-overflow:ellipsis;">
+                {{ title }}
+            </div>
+            <div style="color:green; padding-left:20px;">
+                Assigned to: {{ objs[0].assigned_to.name }}
+            </div>
+        </div>
+    </a>
+    {% elif role == "employee" %}
+    <a href="{{ url_for('employee.objectives_overview', objective_id=objs[0].id) }}" style="text-decoration:none;">
+        <div class="obj-card"
+         style="
+            background-color:white;
+            width:100%;
+            max-width:700px;
+            border:2px solid black;
+            border-radius:10px;
+            padding:20px;
+            margin:20px;
+            box-shadow:0 8px 20px rgba(0,0,0,0.3);
+            display:grid;
+            grid-template-columns:80% 20%;
+            overflow:hidden;
+            border-right: 10px solid {{ 'green' if ns.reviewed else 'none' }};">
+            <div style="overflow:hidden; text-overflow:ellipsis;">
+                {{ title }}
+            </div>
+            <div style="color:green; padding-left:20px;">
+                Assigned to: {{ objs[0].assigned_to.name }}
+            </div>
+        </div>
+    </a>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+
+<script>
+    function showObjectives(button,buttonSelector,contentSelector,targetId){
+        document.querySelectorAll(buttonSelector).forEach(btn =>
+            btn.classList.remove("active")
+        )
+        button.classList.add("active")
+        document.querySelectorAll(contentSelector).forEach(btn =>
+            btn.classList.remove("active")
+        )
+        document.getElementById(targetId).classList.add("active")
+    }
+</script>
+
+{% endblock %}
+
+
+project/app/templates/review.html
+
+{% extends "base.html" %}
+{% set page_title = Title %}
+
+{% block content %}
+<h2>{{ objective.title }}</h2>
+
+<p><b>Weight:</b> {{ objective.weight }}%</p>
+<p><b>Score Range:</b> {{ objective.score_range }}</p>
+{% if review %}
+<form method="POST">
+    <label>Review</label>
+    <textarea name="review" required>{{ review.review }}</textarea>
+
+    <label>Score</label>
+    <input type="number" name="score" value = "{{ review.score }}" required>
+
+    <button type="submit">Edit Review</button>
+</form>
+{% else %}
+<form method="POST">
+    <label>Review</label>
+    <textarea name="review" required></textarea>
+
+    <label>Score</label>
+    <input type="number" name="score" required>
+
+    <button type="submit">Submit Review</button>
+</form>
+{% endif %}
+
+{% endblock %}
+
+
+project/app/templates/signup.html
+
+{% extends "base.html" %}
+{% set page_title = "SIGNUP" %}
+
+{% block content %}
+<h2>Signup</h2>
+
+<form method="POST">
+    <label>Username</label>
+    <input type="text" name="username" required>
+
+    <label>Email</label>
+    <input type="email" name="email" required>
+
+    <label>Password</label>
+    <input type="password" name="password" id="password" required>
+    <label>Confirm Password</label>
+    <input type="password" name="confirm_password" id="confirm_password" required>
+    <div id="password-flash" style="color: red; margin-top: 10px;"></div>
+    <label>Entry Code</label>
+    <input type="password" name="entry_code" required>
+    
+    <div class="role-group">
+        <label class="role-option">
+            <input type="radio" name="role" value="admin" required>
+            <span>Admin</span>
+        </label>
+        <label class="role-option">
+            <input type="radio" name="role" value="team_leader">
+            <span>Team Leader</span>
+        </label>
+        <label class="role-option">
+            <input type="radio" name="role" value="employee">
+            <span>Employee</span>
+        </label>
+    </div>
+
+
+
+    <div id="departmentDiv">
+        <label for="department">Department:</label>
+        <select name="department" id="department">
+            <option>HCM</option>
+            <option>SCM</option>
+            <option>Procurement</option>
+            <option>Finance</option>
+            <option>Administration</option>
+            <option>Business Development</option>
+            <option>Technical</option>
+        </select>
+    </div>
+    <button type="submit" id="submit-btn">Create Account</button>
+    
+</form>
+
+<script>
+document.getElementById("submit-btn").addEventListener("click", function(event) {
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirm_password").value;
+    const flashDiv = document.getElementById("password-flash");
+
+    if (password !== confirmPassword) {
+        event.preventDefault(); 
+        flashDiv.textContent = "Passwords do not match!";
+    } else {
+        flashDiv.textContent = ""; 
+    }
+});
+
+const roleRadios = document.querySelectorAll('input[name="role"]');
+const departmentDiv = document.getElementById("departmentDiv");
+
+function updateDepartmentDisplay() {
+    const selectedRole = document.querySelector('input[name="role"]:checked');
+    if (selectedRole && selectedRole.value === "admin") {
+        departmentDiv.style.display = "none";
+    } else {
+        departmentDiv.style.display = "block";
+    }
+}
+
+roleRadios.forEach(radio => {
+    radio.addEventListener("change", updateDepartmentDisplay);
+});
+
+updateDepartmentDisplay();
+</script>
+
+{% endblock %}
+
+project/app/utils/__init__.py
+
+from .decorators import login_required,admin_required,employee_required,team_leader_required
+
+project/app/utils/decorators.py
+
+from functools import wraps
+from flask import session, redirect, url_for, flash, request
+
+def login_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if "user_id" not in session:
+            flash("please login first","error")
+            return redirect(url_for("base.login"))
+        return view(*args, **kwargs)
+    return wrapped
+
+def admin_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if session.get("role") != "admin":
+            flash("Page can only be accessed by admins","error")
+            return redirect(request.url)
+        return view(*args, **kwargs)
+    return wrapped
+
+def team_leader_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if session.get("role") != "team_leader":
+            flash("Page can only be accessed by team leaders","error")
+            return redirect(request.url)
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def employee_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if session.get("role") != "employee":
+            flash("Page can only be accessed by users","error")
+            return redirect(request.url)
+        return view(*args, **kwargs)
+    return wrapped
+
+project/app/__init__.py
+
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+import logging
+import os
+from dotenv import load_dotenv
+
+db = SQLAlchemy()
+migrate = Migrate()
+
+load_dotenv()
+
+def create_app():
+    app = Flask(__name__)
+
+    app.config.from_object("config.Config")
+
+    db.init_app(app)
+    migrate.init_app(app,db)
+
+    logging.basicConfig(level=logging.INFO)
+    from app.admin import admin_bp
+    from app.employee import employee_bp
+    from app.base import base_bp
+    from app.team_leader import team_leader_bp
+
+
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(employee_bp)
+    app.register_blueprint(base_bp)
+    app.register_blueprint(team_leader_bp)
+    return app
+
+project/app/models.py
+
+from app import db
+
+class Department(db.Model):
+    __tablename__ = "departments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    administrator_id = db.Column(db.Integer, db.ForeignKey("administrator.id"))
+    administrator = db.relationship("Administrator", back_populates="departments")
+    employees = db.relationship("Employee",back_populates="department",cascade="all, delete-orphan")
+    team_leader = db.relationship("TeamLeader",back_populates="department",uselist=False,cascade="all, delete-orphan")
+
+class Authentication(db.Model):
+    __tablename__ = "authentications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(300), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    role = db.Column(db.String(50), nullable=False)
+    employee = db.relationship("Employee", back_populates="authentication", uselist=False)
+    team_leader = db.relationship("TeamLeader", back_populates="authentication", uselist=False)
+    administrator = db.relationship("Administrator", back_populates="authentication", uselist=False,cascade="all, delete-orphan")
+    admin_objectives = db.relationship("AdminObjective",back_populates="assigned_to",cascade="all, delete-orphan")
+    objectives = db.relationship("Objective",back_populates="assigned_to",cascade="all, delete-orphan")
+
+class Employee(db.Model):
+    __tablename__ = "employees"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), nullable=False)
+    dept_id = db.Column(db.Integer, db.ForeignKey("departments.id"), nullable=False)
+    department = db.relationship("Department", back_populates="employees")
+    authentication_id = db.Column(db.Integer,db.ForeignKey("authentications.id"),unique=True)
+    authentication = db.relationship("Authentication", back_populates="employee")
+    objectives = db.relationship("Objective",back_populates="assigned_to",cascade="all, delete-orphan")
+
+class TeamLeader(db.Model):
+    __tablename__ = "team_leaders"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    dept_id = db.Column(db.Integer,db.ForeignKey("departments.id"),unique=True,nullable=False)
+    department = db.relationship("Department", back_populates="team_leader")
+    authentication_id = db.Column(db.Integer,db.ForeignKey("authentications.id"),unique=True)
+    authentication = db.relationship("Authentication", back_populates="team_leader")
+    objectives = db.relationship("Objective",back_populates="assigned_by",cascade="all, delete-orphan")
+
+class Administrator(db.Model):
+    __tablename__ = "administrator"
+
+    id = db.Column(db.Integer, primary_key=True, default=1)
+    name = db.Column(db.String(200), nullable=False)
+    authentication_id = db.Column(db.Integer,db.ForeignKey("authentications.id"),unique=True)
+    authentication = db.relationship("Authentication", back_populates="administrator")
+    departments = db.relationship("Department",back_populates="administrator")
+    admin_objectives = db.relationship("AdminObjective",back_populates="assigned_by",cascade="all, delete-orphan")
+
+class AdminObjectiveBatch(db.Model):
+    __tablename__ = "admin_objective_batches"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    admin_objectives = db.relationship("AdminObjective",back_populates="admin_batch",cascade="all, delete-orphan")
+
+class AdminObjective(db.Model):
+    __tablename__ = "admin_objectives"
+
+    id = db.Column(db.Integer, primary_key=True)
+    objective = db.Column(db.String, nullable=False)
+    weight = db.Column(db.Integer, nullable=False)
+    score_range = db.Column(db.Integer, nullable=False)
+    category = db.Column(db.String, nullable=False)
+    admin_batch_id = db.Column(db.Integer,db.ForeignKey("admin_objective_batches.id"),nullable=False)
+    admin_batch = db.relationship("AdminObjectiveBatch", back_populates="admin_objectives")
+    assigned_by_id = db.Column(db.Integer,db.ForeignKey("administrator.id"),nullable=False)
+    assigned_by = db.relationship("Administrator", back_populates="admin_objectives")
+    assigned_to_id = db.Column(db.Integer,db.ForeignKey("authentications.id"),nullable=False)
+    assigned_to = db.relationship("Authentication", back_populates="admin_objectives")
+    admin_review = db.relationship("AdminReview",back_populates="admin_objective",uselist=False,cascade="all, delete-orphan")
+
+class ObjectiveBatch(db.Model):
+    __tablename__ = "objective_batches"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    objectives = db.relationship("Objective",back_populates="batch",cascade="all, delete-orphan")
+
+class Objective(db.Model):
+    __tablename__ = "objectives"
+
+    id = db.Column(db.Integer, primary_key=True)
+    objective = db.Column(db.String, nullable=False)
+    category = db.Column(db.String, nullable=False)
+    score_range = db.Column(db.Integer, nullable=False)
+    weight = db.Column(db.Integer, nullable=False)
+    assigned_by_id = db.Column(db.Integer,db.ForeignKey("team_leaders.id"),nullable=False)
+    assigned_by = db.relationship("TeamLeader", back_populates="objectives")
+    assigned_to_id = db.Column(db.Integer,db.ForeignKey("authentications.id"),nullable=False)
+    assigned_to = db.relationship("Authentication", back_populates="objectives")
+    batch_id = db.Column(db.Integer,db.ForeignKey("objective_batches.id"),nullable=False)
+    batch = db.relationship("ObjectiveBatch", back_populates="objectives")
+    review = db.relationship("Review",back_populates="objective",uselist=False,cascade="all, delete-orphan")
+
+class Review(db.Model):
+    __tablename__ = "reviews"
+
+    id = db.Column(db.Integer, primary_key=True)
+    review = db.Column(db.String(500), nullable=False)
+    score = db.Column(db.Integer, nullable=False)
+    weighted_score = db.Column(db.Float, nullable=False)
+    objective_id = db.Column(db.Integer,db.ForeignKey("objectives.id"),unique=True)
+    objective = db.relationship("Objective", back_populates="review")
+    feedback = db.relationship("Feedback",back_populates="review",uselist=False,cascade="all, delete-orphan")
+
+class AdminReview(db.Model):
+    __tablename__ = "admin_reviews"
+
+    id = db.Column(db.Integer, primary_key=True)
+    review = db.Column(db.String(500), nullable=False)
+    score = db.Column(db.Integer, nullable=False)
+    weighted_score = db.Column(db.Float, nullable=False)
+    admin_objective_id = db.Column(db.Integer,db.ForeignKey("admin_objectives.id"),unique=True)
+    admin_objective = db.relationship("AdminObjective", back_populates="admin_review")
+    feedback = db.relationship("AdminFeedback",back_populates="admin_review",uselist=False,cascade="all, delete-orphan")
+
+class Feedback(db.Model):
+    __tablename__ = "feedbacks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    feedback = db.Column(db.String(500), nullable=False)
+    review_id = db.Column(db.Integer,db.ForeignKey("reviews.id"),unique=True)
+    review = db.relationship("Review", back_populates="feedback")
+
+class AdminFeedback(db.Model):
+    __tablename__ = "admin_feedbacks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    feedback = db.Column(db.String(500), nullable=False)
+    admin_review_id = db.Column(db.Integer,db.ForeignKey("admin_reviews.id"),unique=True)
+    admin_review = db.relationship("AdminReview", back_populates="feedback")
+
+project/config/__init__.py
+
+from .config import Config
+
+project/config/config.py
+
+import os
+
+class Config:
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SECRET_KEY = os.getenv("SECRET_KEY")
+
+
+project/wsgi.py
+
+from app import create_app
+
+app = create_app()

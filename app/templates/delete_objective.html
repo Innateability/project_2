@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="card">
-    <h2>Confirm Deletion</h2>
+    <h2>Confirm Deletion of {{ objective.objective }} for {{ objective.assigned_to.name }}</h2>
     <p>
         Are you sure you want to delete this objective?
         <br><br>
@@ -13,7 +13,7 @@
     <form method="POST">
         <div class="actions">
             <button type="submit" class="delete-btn">Yes, Delete</button>
-            <a href="{{ url_for('admin.objectives') }}" class="cancel-btn">Cancel</a>
+            <a href="{{ url_for('admin.objectives') if state=='admin' or role=='admin' else url_for('team_leader.objectives') }}" class="cancel-btn">Cancel</a>
         </div>
     </form>
 </div>

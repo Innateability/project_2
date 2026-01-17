@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% set page_title = "Add Member" %}
+
+{% block content %}
+<h2>Signup</h2>
+
+<form method="POST">
+    <label>Email</label>
+    <input type="email" name="email" required>
+    
+    <div class="role-group">
+        <label class="role-option">
+            <input type="radio" name="role" value="team_leader">
+            <span>Team Leader</span>
+        </label>
+        <label class="role-option">
+            <input type="radio" name="role" value="employee">
+            <span>Employee</span>
+        </label>
+    </div>
+
+
+
+    <div id="departmentDiv">
+        <label for="department">Department:</label>
+        <select name="department" id="department">
+            <option>HCM</option>
+            <option>SCM</option>
+            <option>Procurement</option>
+            <option>Finance</option>
+            <option>Administration</option>
+            <option>Business Development</option>
+            <option>Technical</option>
+        </select>
+    </div>
+    <button type="submit" id="submit-btn">Create Account</button>
+    
+</form>
+
+{% endblock %}

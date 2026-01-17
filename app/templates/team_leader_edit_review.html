@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% set page_title = "Review " %}
+
+{% block content %}
+<h2>{{ objective.objective }}</h2>
+
+<p><b>Weight:</b> {{ objective.weight }}%</p>
+<p><b>Score Range:</b> <span id="scoreRange">{{ objective.score_range }}</span></p>
+
+<form method="POST" id="reviewForm">
+    <label>Review</label>
+    <textarea name="review" required>{{ review.review }}</textarea>
+
+    <label>Score</label>
+    <input type="number" name="score" id="scoreInput" value="{{ review.score }}" required>
+
+    <p id="scoreError" style="color:red; display:none;">
+        Score cannot be higher than the score range.
+    </p>
+
+    <button type="submit" id="submitBtn">Submit Review</button>
+</form>
+
+<script>
+    const scoreInput = document.getElementById("scoreInput");
+    const scoreRange = parseInt(document.getElementById("scoreRange").innerText);
+    const errorMsg = document.getElementById("scoreError");
+    const submitBtn = document.getElementById("submitBtn");
+
+    scoreInput.addEventListener("input", function () {
+        const score = parseInt(scoreInput.value);
+
+        if (score > scoreRange) {
+            errorMsg.style.display = "block";
+            submitBtn.disabled = true;
+        } else {
+            errorMsg.style.display = "none";
+            submitBtn.disabled = false;
+        }
+    });
+</script>
+
+{% endblock %}

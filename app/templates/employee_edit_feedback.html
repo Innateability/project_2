@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% set page_title = "Edit Feedback" %}
+
+{% block content %}
+<h2>{{ objective.title }}</h2>
+
+
+{% if objective.review %}
+    <p><b>Review:</b> {{ objective.review.review }}</p>
+    <p><b>Score:</b> {{ objective.review.score }}</p>
+
+<form method="POST">
+    <label>Feedback (optional)</label>
+    <textarea name="feedback">objective.review.feedback.feedback</textarea>
+
+    <button type="submit">Edit Feedback</button>
+</form>
+
+{% elif objective.admin_review %}
+    <p><b>Review:</b> {{ objective.admin_review.review }}</p>
+    <p><b>Score:</b> {{ objective.admin_review.score }}</p>
+
+<form method="POST">
+    <label>Feedback (optional)</label>
+    <textarea name="feedback">objective.review.feedback.feedback</textarea>
+
+    <button type="submit">Edit Feedback</button>
+</form>
+{% endif %}
+
+{% endblock %}

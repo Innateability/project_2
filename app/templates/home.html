@@ -4,7 +4,13 @@
 {% block content %}
 
 
-<h2>Welcome {{ state }}</h2>
+<h2>Welcome {{ "Team leader" if state == "team_leader" else "Employee" if state == "employee"  else "Admin" if state == "admin"   }}</h2>
 <p>Select an option from the navigation bar.</p>
+
+{% if state == "admin" %}
+
+<a href="{{ url_for('admin.add_member') }}" class="obj-style">Add Member</a>
+
+{% endif %}
 
 {% endblock %}

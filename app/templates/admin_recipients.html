@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% set page_title = "Recipients" %}
+
+{% block content %}
+
+
+<form method="GET" action="{{ url_for('admin.add_objective') }}">
+    <div style="display:flex; flex-direction:column; gap:15px;">
+
+        {% for auth in names_auth %}
+        <label class="select-card">
+            <input type="checkbox" name="recipients[]" value="{{ auth.id }}">
+            
+            <div class="card-content">
+                <strong>{{ auth.name }}</strong><br>
+                <small>{{ auth.email }}</small>
+            </div>
+        </label>
+        {% endfor %}
+
+    </div>
+
+    
+    <button type="submit">Continue</button>
+</form>
+
+<style>
+
+.select-card input {
+    display: none;
+}
+
+
+.select-card {
+    cursor: pointer;
+}
+
+.card-content {
+    background: white;
+    border: 2px solid #000;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    transition: all 0.2s ease;
+}
+
+
+.select-card input:checked + .card-content {
+    border-color: green;
+    background-color: #eaffea;
+    box-shadow: 0 10px 25px rgba(0,128,0,0.3);
+}
+</style>
+
+{% endblock %}

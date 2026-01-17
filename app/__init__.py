@@ -22,8 +22,11 @@ def create_app():
     from app.admin import admin_bp
     from app.employee import employee_bp
     from app.base import base_bp
+    from app.team_leader import team_leader_bp
+
 
     app.register_blueprint(admin_bp)
     app.register_blueprint(employee_bp)
     app.register_blueprint(base_bp)
+    app.register_blueprint(team_leader_bp)
     return app

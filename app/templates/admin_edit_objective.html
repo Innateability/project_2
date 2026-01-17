@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% set page_title = "Add Objective" %}
+
+{% block content %}
+<h2>{{ Title }}</h2>
+
+<form method="POST" action="{{ url_for('admin.edit_objective',objective_id=objective.id) }}">
+    <b>Title {{ objective.admin_batch.title }}</b><br><br><br>
+    <label>Title</label>
+    <input type="text" name="title" value="{{objective.admin_batch.title}}" required>
+    <label>Years</label>
+    <input type="number" name="year" value="{{objective.admin_batch.year}}" required>
+    <hr>
+    <div id="objectives-container">
+        <div class="objective-block">
+            <h4>Objective 1</h4>
+            <label>Objective</label>
+            <input type="text" name="objective" value="{{objective.objective}}" required>
+            <label>Category</label>
+            <input type="text" name="category" value="{{objective.category}}" required>
+            <label>Weight (%)</label>
+            <input type="number" name="weight" value="{{objective.weight}}" required>
+            <label>Score Range</label>
+            <input type="number" name="score_range" value="{{objective.score_range}}" required>
+            <hr>
+        </div>
+    </div>
+
+   <div> Assigned to {{ objective.assigned_to.name }}</div> 
+   <button type="submit">Submit Objective</button>
+</form>
+
+<script>
+const form = document.querySelector("form");
+
+form.addEventListener("submit", function(event) {
+    
+    const weight = parseFloat(form.querySelector("input[name='weight']").value);
+    const scoreRange = parseFloat(form.querySelector("input[name='score_range']").value);
+
+    
+    if (weight > 100 || scoreRange > 100) {
+        let message = "";
+        if (weight > 100) message += "Weight cannot exceed 100%.\n";
+        if (scoreRange > 100) message += "Score range cannot exceed 100.\n";
+        alert(message + "Please enter a valid value.");
+        
+        
+        event.preventDefault();
+
+        
+        if (weight > 100) form.querySelector("input[name='weight']").style.borderColor = "red";
+        if (scoreRange > 100) form.querySelector("input[name='score_range']").style.borderColor = "red";
+    }
+});
+</script>
+
+
+{% endblock %}
