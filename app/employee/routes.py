@@ -193,7 +193,7 @@ def edit_feedback(objective_id, role):
                     feedback=feedback_text
                 )
             else:
-                review.employee_feedback.feedback = feedback_text
+                review.feedback.feedback = feedback_text
 
         db.session.commit()
 
