@@ -1,8 +1,8 @@
-"""initial
+"""create tables
 
-Revision ID: 89a198233d79
+Revision ID: 5e94ff723ca9
 Revises: 
-Create Date: 2026-01-14 10:51:49.224111
+Create Date: 2026-01-17 12:29:20.788136
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '89a198233d79'
+revision = '5e94ff723ca9'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -33,77 +33,86 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
     )
+    op.create_table('employee_emails',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('email', sa.String(length=150), nullable=False),
+    sa.Column('role', sa.String(length=150), nullable=False),
+    sa.Column('department', sa.String(length=150), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('email')
+    )
     op.create_table('objective_batches',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('title', sa.String(length=200), nullable=False),
     sa.Column('year', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('administrator',
+    op.create_table('administrators',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=200), nullable=False),
-    sa.Column('authentication_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['authentication_id'], ['authentications.id'], ),
+    sa.Column('authentication_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['authentication_id'], ['authentications.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('authentication_id')
     )
     op.create_table('admin_objectives',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('objective', sa.String(), nullable=False),
-    sa.Column('weight', sa.Integer(), nullable=False),
-    sa.Column('score_range', sa.Integer(), nullable=False),
     sa.Column('category', sa.String(), nullable=False),
+    sa.Column('score_range', sa.Integer(), nullable=False),
+    sa.Column('weight', sa.Integer(), nullable=False),
     sa.Column('admin_batch_id', sa.Integer(), nullable=False),
     sa.Column('assigned_by_id', sa.Integer(), nullable=False),
     sa.Column('assigned_to_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['admin_batch_id'], ['admin_objective_batches.id'], ),
-    sa.ForeignKeyConstraint(['assigned_by_id'], ['administrator.id'], ),
-    sa.ForeignKeyConstraint(['assigned_to_id'], ['authentications.id'], ),
+    sa.ForeignKeyConstraint(['admin_batch_id'], ['admin_objective_batches.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['assigned_by_id'], ['administrators.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['assigned_to_id'], ['authentications.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('departments',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('administrator_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['administrator_id'], ['administrator.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.ForeignKeyConstraint(['administrator_id'], ['administrators.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name')
     )
     op.create_table('admin_reviews',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('review', sa.String(length=500), nullable=False),
     sa.Column('score', sa.Integer(), nullable=False),
     sa.Column('weighted_score', sa.Float(), nullable=False),
-    sa.Column('admin_objective_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['admin_objective_id'], ['admin_objectives.id'], ),
+    sa.Column('admin_objective_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['admin_objective_id'], ['admin_objectives.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('admin_objective_id')
     )
     op.create_table('employees',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=150), nullable=False),
-    sa.Column('dept_id', sa.Integer(), nullable=False),
-    sa.Column('authentication_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['authentication_id'], ['authentications.id'], ),
-    sa.ForeignKeyConstraint(['dept_id'], ['departments.id'], ),
+    sa.Column('department_id', sa.Integer(), nullable=False),
+    sa.Column('authentication_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['authentication_id'], ['authentications.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['department_id'], ['departments.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('authentication_id')
     )
     op.create_table('team_leaders',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=200), nullable=False),
-    sa.Column('dept_id', sa.Integer(), nullable=False),
-    sa.Column('authentication_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['authentication_id'], ['authentications.id'], ),
-    sa.ForeignKeyConstraint(['dept_id'], ['departments.id'], ),
+    sa.Column('department_id', sa.Integer(), nullable=False),
+    sa.Column('authentication_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['authentication_id'], ['authentications.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['department_id'], ['departments.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('authentication_id'),
-    sa.UniqueConstraint('dept_id')
+    sa.UniqueConstraint('department_id')
     )
-    op.create_table('admin_feedbacks',
+    op.create_table('admin_review_feedbacks',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('feedback', sa.String(length=500), nullable=False),
-    sa.Column('admin_review_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['admin_review_id'], ['admin_reviews.id'], ),
+    sa.Column('admin_review_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['admin_review_id'], ['admin_reviews.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('admin_review_id')
     )
@@ -116,26 +125,34 @@ def upgrade():
     sa.Column('assigned_by_id', sa.Integer(), nullable=False),
     sa.Column('assigned_to_id', sa.Integer(), nullable=False),
     sa.Column('batch_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['assigned_by_id'], ['team_leaders.id'], ),
-    sa.ForeignKeyConstraint(['assigned_to_id'], ['authentications.id'], ),
-    sa.ForeignKeyConstraint(['batch_id'], ['objective_batches.id'], ),
+    sa.ForeignKeyConstraint(['assigned_by_id'], ['team_leaders.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['assigned_to_id'], ['authentications.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['batch_id'], ['objective_batches.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('team_leader_feedbacks',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('feedback', sa.String(length=500), nullable=False),
+    sa.Column('admin_review_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['admin_review_id'], ['admin_reviews.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('admin_review_id')
     )
     op.create_table('reviews',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('review', sa.String(length=500), nullable=False),
     sa.Column('score', sa.Integer(), nullable=False),
     sa.Column('weighted_score', sa.Float(), nullable=False),
-    sa.Column('objective_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['objective_id'], ['objectives.id'], ),
+    sa.Column('objective_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['objective_id'], ['objectives.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('objective_id')
     )
     op.create_table('feedbacks',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('feedback', sa.String(length=500), nullable=False),
-    sa.Column('review_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['review_id'], ['reviews.id'], ),
+    sa.Column('review_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['review_id'], ['reviews.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('review_id')
     )
@@ -146,15 +163,17 @@ def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('feedbacks')
     op.drop_table('reviews')
+    op.drop_table('team_leader_feedbacks')
     op.drop_table('objectives')
-    op.drop_table('admin_feedbacks')
+    op.drop_table('admin_review_feedbacks')
     op.drop_table('team_leaders')
     op.drop_table('employees')
     op.drop_table('admin_reviews')
     op.drop_table('departments')
     op.drop_table('admin_objectives')
-    op.drop_table('administrator')
+    op.drop_table('administrators')
     op.drop_table('objective_batches')
+    op.drop_table('employee_emails')
     op.drop_table('authentications')
     op.drop_table('admin_objective_batches')
     # ### end Alembic commands ###
