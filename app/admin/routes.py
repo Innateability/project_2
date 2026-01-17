@@ -48,6 +48,7 @@ def delete_account():
 @admin_required
 def recipients():
     current_user_id = session["user_id"]
+    print(current_user_id)
     names_auth = Authentication.query.filter(Authentication.id != current_user_id).order_by(Authentication.name.asc()).all()
     print(names_auth)
     return render_template("admin_recipients.html",names_auth=names_auth)

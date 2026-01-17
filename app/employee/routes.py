@@ -144,8 +144,8 @@ def edit_feedback(objective_id, role):
             return redirect(url_for("employee.objectives"))
 
         feedback_text = (
-            review.employee_feedback.feedback
-            if review.employee_feedback
+            review.feedback.feedback
+            if review.feedback
             else ""
         )
 
