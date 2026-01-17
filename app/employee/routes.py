@@ -227,7 +227,7 @@ def objectives_overview(objective_id):
         objectives = Objective.query.filter_by(batch_id=batch.id,assigned_to_id=employee.id).all()
         total_weighted = 0
         for obj in objectives:
-            if obj.reviews: 
+            if obj.review: 
                 total_weighted += obj.review.weighted_score
     elif admin_objective:
         batch = admin_objective.admin_batch
