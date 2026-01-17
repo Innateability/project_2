@@ -188,8 +188,8 @@ def edit_feedback(objective_id, role):
                 admin_review.employee_feedback.feedback = feedback_text
 
         elif role == "team_leader":
-            if not review.employee_feedback:
-                review.employee_feedback = TeamLeaderFeedback(
+            if not review.feedback:
+                review.feedback = Feedback(
                     feedback=feedback_text
                 )
             else:

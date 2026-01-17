@@ -346,8 +346,8 @@ def feedback(objective_id):
             flash("Feedback is required", "error")
             return redirect(request.url)
 
-        fb = Feedback(feedback=feedback_text)
-        admin_objective.admin_reviews.feedback = fb
+        fb = TeamLeaderFeedback(feedback=feedback_text)
+        admin_objective.admin_review.team_leader_feedback = fb
         db.session.commit()
 
         return redirect(
