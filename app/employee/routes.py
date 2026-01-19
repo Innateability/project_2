@@ -258,17 +258,18 @@ def objectives_overview(objective_id):
 @employee_required
 def objective_overview(objective_id, assigned_by_id):
     print(1)
-    assigned_by = Authentication.query.get(assigned_by_id)
-    if hasattr(assigned_by, "objectives"):
-        print(2)
-        objective = Objective.query.get(objective_id)
+    assigned_by = Authentication.query.get_or_404(assigned_by_id)
+    
+    if assigned_by.role == "employee":
+        objective = Objective.query.get_or_404(objective_id)
         batch = objective.batch
-
-    elif hasattr(assigned_by, "admin_objectives"):
-        print(4)
-        objective = AdminObjective.query.get(objective_id)
+        
+    elif assigned_by.role == "admin":
+        objective = AdminObjective.query.get_or_404(objective_id)
         batch = objective.admin_batch
-        print(objective.admin_batch)
+        
+    else:
+        abort(403)
 
     title = batch.title
     year = batch.year
