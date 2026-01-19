@@ -260,11 +260,11 @@ def objective_overview(objective_id, assigned_by_id):
     print(1)
     assigned_by = Authentication.query.get_or_404(assigned_by_id)
     
-    if assigned_by.role == "employee":
+    if session.get("role") == "employee":
         objective = Objective.query.get_or_404(objective_id)
         batch = objective.batch
         
-    elif assigned_by.role == "admin":
+    elif session.get("role") == "admin":
         objective = AdminObjective.query.get_or_404(objective_id)
         batch = objective.admin_batch
         
