@@ -258,14 +258,14 @@ def objectives_overview(objective_id):
 @employee_required
 def objective_overview(objective_id, assigned_by_id):
     print(1)
-    assigned_by = Authentication.query.get_or_404(assigned_by_id)
+    assigned_by = Authentication.query.get(assigned_by_id)
     
     if session.get("role") == "employee":
-        objective = Objective.query.get_or_404(objective_id)
+        objective = Objective.query.get(objective_id)
         batch = objective.batch
         
     elif session.get("role") == "admin":
-        objective = AdminObjective.query.get_or_404(objective_id)
+        objective = AdminObjective.query.get(objective_id)
         batch = objective.admin_batch
         
     else:
@@ -282,5 +282,4 @@ def objective_overview(objective_id, assigned_by_id):
         employee=employee,
         role="employee",
         state="employee",
-        objective=objective
-    )
+        objective=objective)
