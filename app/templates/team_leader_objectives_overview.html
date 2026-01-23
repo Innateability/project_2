@@ -17,7 +17,7 @@
 </tr>
 
 {% for obj in objectives %}
-2
+
 <tr>
     <td style="padding: 12px; border: 1px solid #ccc;">{{ loop.index }}</td>
     <td style="padding: 12px; border: 1px solid #ccc;">
@@ -26,19 +26,17 @@
         </a>
     </td>
 
-    {% if obj.admin_objective %}
-    3
+    {% if obj.admin_batch %}
     <td style="padding: 12px; border: 1px solid #ccc;">{{ obj.category }}</td>
     <td style="padding: 12px; border: 1px solid #ccc;">
-        {{ obj.admin_review.score if obj.review else "-" }}
+        {{ obj.admin_review.score if obj.admin_review else "-" }}
     </td>
     <td style="padding: 12px; border: 1px solid #ccc;">{{ obj.weight }}</td>
     <td style="padding: 12px; border: 1px solid #ccc;">
-        {{ obj.admin_review.weighted_score if obj.review else "-" }}
+        {{ obj.admin_review.weighted_score if obj.admin_review else "-" }}
     </td>
     {% endif %}
-    {% if obj.objective %}
-    4
+    {% if obj.batch %}
 
     <td style="padding: 12px; border: 1px solid #ccc;">{{ obj.category }}</td>
     <td style="padding: 12px; border: 1px solid #ccc;">

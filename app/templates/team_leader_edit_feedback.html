@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% set page_title = "Give Feedback" %}
+{% set page_title = "Edit Feedback" %}
 
 {% block content %}
 <h2>{{ objective.admin_batch.title }}</h2>
@@ -8,9 +8,9 @@
 <p><b>Review:</b> {{ objective.admin_review.review }}</p>
 <p><b>Score:</b> {{ objective.admin_review.score }}</p>
 
-<form method="POST" action="{{ url_for('team_leader.feedback',objective_id=objective.id,assigned_by_id=objective.assigned_by_id) }}">
+<form method="POST" action="{{ url_for('team_leader.edit_feedback',objective_id=objective.id) }}">
     <label>Feedback</label>
-    <textarea name="feedback"></textarea>
+    <textarea name="feedback">{{feedback}}</textarea>
 
     <button type="submit">Submit Feedback</button>
 </form>

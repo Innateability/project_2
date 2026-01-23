@@ -90,12 +90,15 @@
     {% if state %}
     <nav style="margin-bottom: 30px;">
     <a href="{{ url_for('admin.home') if state=='admin' or role=='admin' else (url_for('team_leader.home') if state=='team_leader' or role=='team_leader' else url_for('employee.home')) }}">Home</a>
-    <a href="{{ url_for('admin.objectives') if state=='admin' or role=='admin' else (url_for('team_leader.objectives') if state=='team_leader' or role=='team_leader' else url_for('employee.objectives')) }}">Objectives</a>
+    <a href="{{ url_for('admin.select_member') if state=='admin' or role=='admin' else (url_for('team_leader.select_member') if state=='team_leader' or role=='team_leader' else url_for('employee.objectives')) }}">Objectives</a>
     <a href="{{ url_for('admin.logout') if state=='admin' or role=='admin' else (url_for('team_leader.logout') if state=='team_leader' or role=='team_leader' else url_for('employee.logout')) }}">Logout</a>
 
     </nav>
     {% endif %}
     {% block content %}{% endblock %}
+    <button onclick="history.back()" class="obj-style" style="color: greenyellow;font-size: 20px;margin-left: 0;">
+        Back
+    </button>
 </div>
 
 </body>

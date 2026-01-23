@@ -11,7 +11,8 @@ employee_bp = Blueprint("employee",__name__,url_prefix="/employee")
 @login_required
 @employee_required
 def home():
-    return render_template("home.html",state="employee",role="employee")
+    auth_name = Authentication.query.get(session["user_id"]).name
+    return render_template("home.html",state="employee",role="employee",auth_name=auth_name)
 
 @employee_bp.route("/logout",methods=["POST","GET"])
 @login_required
@@ -116,7 +117,7 @@ def feedback(objective_id, role):
     return render_template(
         "employee_feedback.html",
         objective=objective,
-        role=role,
+        role="employee",
         state="employee",
         Title="Feedback"
     )
@@ -253,28 +254,31 @@ def objectives_overview(objective_id):
         state="employee"
     )
 
-@employee_bp.route("/objective_overview/<int:objective_id>/<int:assigned_by_id>",methods=["GET","HEAD"])
+@employee_bp.route("/objective_overview/<int:objective_id>/<int:assigned_by_id>",methods=["GET"])
 @login_required
 @employee_required
 def objective_overview(objective_id, assigned_by_id):
-    print(1)
     assigned_by = Authentication.query.get(assigned_by_id)
-    
+    print(assigned_by)
     if assigned_by.role == "team_leader":
+        print(1)
         objective = Objective.query.get(objective_id)
+        print(objective)
         batch = objective.batch
-        
+        print(batch)
+        title = batch.title
+        year = batch.year
+        employee = objective.assigned_to.name
     elif assigned_by.role == "admin":
+        print(2)
         objective = AdminObjective.query.get(objective_id)
+        print(objective)
         batch = objective.admin_batch
-        
-    else:
-        abort(403)
-
-    title = batch.title
-    year = batch.year
-    employee = objective.assigned_to.name
-
+        print(batch)
+        title = batch.title
+        year = batch.year
+        employee = objective.assigned_to.name
+    print(year,title,employee,objective)
     return render_template(
         "employee_objective_overview.html",
         year=year,

@@ -11,7 +11,8 @@ admin_bp = Blueprint("admin",__name__,url_prefix="/admin")
 @login_required
 @admin_required
 def home():
-    return render_template("home.html",state="admin",role="admin")
+    auth_name = Authentication.query.get(session["user_id"]).name
+    return render_template("home.html",state="admin",role="admin",auth_name=auth_name)
 
 @admin_bp.route("/logout",methods=["POST","GET"])
 @login_required
@@ -53,17 +54,32 @@ def recipients():
     print(names_auth)
     return render_template("admin_recipients.html",names_auth=names_auth)
 
+@admin_bp.route("/select_member")
+@login_required
+@admin_required
+def select_member():
+    current_user_id = session["user_id"]
+    print(current_user_id)
+    names_auth = Authentication.query.filter(Authentication.id != current_user_id).order_by(Authentication.name.asc()).all()
+    print(names_auth)
+    return render_template("admin_select_member.html",names_auth=names_auth,admin_id=current_user_id)
+
+
 @admin_bp.route("/add_objectives",methods=["POST","GET"])
 @login_required
 @admin_required
 def add_objective():
     authen = Authentication.query.get(session["user_id"])
     administrator = authen.administrator if authen else None
-
+    recipients = []
     if request.method == "GET":
-        
         recipient_ids = request.args.getlist("recipients[]")
-        recipients = Authentication.query.filter(Authentication.id.in_(recipient_ids)).all()
+        print(recipient_ids)
+        recipients.extend(Authentication.query.filter(Authentication.id.in_(recipient_ids)).all())
+        if not recipients:
+            recipient_ids = request.args.get("recipient_id", type=int)
+            recipients.append(Authentication.query.get(recipient_ids))
+            print("nah")
         print("yes")
         print(recipients)
         return render_template("admin_add_objective.html", recipients=recipients)
@@ -72,7 +88,13 @@ def add_objective():
 
     if request.method == "POST":
         recipient_ids = request.form.getlist("recipients[]")
-        recipients = Authentication.query.filter(Authentication.id.in_(recipient_ids)).all()
+        if recipient_ids:
+            print('yeah')
+            print(recipient_ids)
+            recipients.extend(Authentication.query.filter(Authentication.id.in_(recipient_ids)).all())
+        if not recipients:
+            recipient_ids = request.args.get("recipient_id", type=int)
+            recipients.extend(Authentication.query.get(recipient_ids))
         print(recipients)
         title = request.form.get("title")
         year = int(request.form.get("year"))
@@ -104,8 +126,8 @@ def add_objective():
                 db.session.add(objective)
 
         db.session.commit()
-        flash("Objectives created successfully", "success")
-        return redirect(url_for("admin.objectives"))
+        flash("Objective(s) created successfully", "success")
+        return redirect(url_for("admin.objectives",auth_id=recipients[0].id))
 
     
 
@@ -148,6 +170,9 @@ def add_member():
             db.session.commit()
             print("boss")
             return redirect(url_for("admin.home"))
+        else:
+            flash("email already enrolled","error")
+            return render_template("admin_add_member.html")
     print("break")
     return render_template("admin_add_member.html")
 
@@ -160,7 +185,10 @@ def edit_objective(objective_id):
     auth = Authentication.query.filter_by(email=admin_email).first()
     administrator = auth.administrator
     print(7)
+    objective = AdminObjective.query.filter_by(id=objective_id).first()
     if request.method == "POST":
+        admin_objective = AdminObjective.query.filter_by(id=objective_id).first()
+        print(objective)
         title = request.form.get("title")
         year = request.form.get("year")
         objective = request.form.get("objective")
@@ -168,7 +196,8 @@ def edit_objective(objective_id):
         weight = request.form.get("weight")
         score_range = request.form.get("score_range")
         emp_name = request.form.get("assigned_to")
-        assigned_to = Authentication.query.filter_by(name=emp_name).first()
+        assigned_to = admin_objective.assigned_to
+        print(assigned_to)
         admin_batch = AdminObjectiveBatch.query.filter_by(title=title,year=year).first()
         if admin_batch:
             obj = AdminObjective.query.filter_by(id=objective_id).first()
@@ -186,12 +215,11 @@ def edit_objective(objective_id):
         obj.category = category
         obj.weight = weight
         obj.score_range = score_range
-
+        obj.admin_batch = admin_batch
         db.session.commit()
         flash(f"Objective {title} edited successfully", "success")
-        return redirect(url_for("admin.objectives"))
+        return redirect(url_for("admin.objectives",auth_id=assigned_to.id))
     
-    objective = AdminObjective.query.filter_by(id=objective_id).first()
     authen = Authentication.query.get(session["user_id"])
     administrator = authen.administrator
     departments = administrator.departments
@@ -208,19 +236,43 @@ def edit_objective(objective_id):
     return render_template("admin_edit_objective.html",employee_names=employee_names,objective=objective,team_leader_names=team_leader_names,Title="EDIT OBJECTIVES",state='admin')
 
 
-@admin_bp.route("/objectives")
+@admin_bp.route("/objectives/<int:auth_id>")
 @login_required
 @admin_required
-def objectives():
-    auth = Authentication.query.get(session["user_id"])
-    grouped = defaultdict(list)
-    for obj in auth.administrator.admin_objectives:
-        key = (obj.admin_batch.title, obj.assigned_to_id)
-        grouped[key].append(obj)
-    print(grouped)
-    return render_template("admin_objectives.html",grouped_objectives=grouped,state='admin')
-
-
+def objectives(auth_id):
+    auth = Authentication.query.get(auth_id)
+    # print(auth)
+    admin_auth =  Authentication.query.get(session.get("user_id"))
+    # print(admin_auth)
+    if auth.administrator:
+        mode = "See All"
+        # print(mode)
+        grouped = defaultdict(list)
+        print(grouped)
+        print(auth.id)
+        print(auth.admin_objectives)
+        admin_objectives = AdminObjective.query.filter_by(assigned_by=admin_auth).all()
+        for obj in admin_objectives:
+            print(obj)
+            key = (obj.admin_batch.title, obj.assigned_to_id)
+            grouped[key].append(obj)
+            print(grouped)
+        username = auth.name
+    if auth.employee or auth.team_leader:
+        mode = "See Objective"
+        print(mode)
+        grouped = defaultdict(list)
+        print(auth.id)
+        print(auth.objectives)
+        for obj in auth.admin_objectives:
+            print(obj)
+            key = (obj.admin_batch.title)
+            grouped[key].append(obj)
+        print(grouped)
+        username = auth.name
+        print(username)
+        print(33333)
+    return render_template("admin_objectives.html",grouped_objectives=grouped,state='admin',name=username,mode=mode,auth=auth)
 
 @admin_bp.route("/review/<int:objective_id>", methods=["POST", "GET"])
 @login_required
@@ -316,5 +368,5 @@ def delete_objective(objective_id):
             db.session.delete(obj)
         db.session.commit()
         flash(f"Objective '{objective.objective}' deleted successfully", "success")
-        return redirect(url_for("admin.objectives"))
+        return redirect(url_for("admin.objectives",auth_id=employee.id))
     return render_template("delete_objective.html", objective=objective,state='admin')

@@ -13,7 +13,6 @@
     <form method="POST">
         <div class="actions">
             <button type="submit" class="delete-btn">Yes, Delete</button>
-            <a href="{{ url_for('admin.objectives') if state=='admin' or role=='admin' else url_for('team_leader.objectives') }}" class="cancel-btn">Cancel</a>
         </div>
     </form>
 </div>

@@ -4,7 +4,7 @@
 {% block content %}
 
 
-<h2>Welcome {{ "Team leader" if state == "team_leader" else "Employee" if state == "employee"  else "Admin" if state == "admin"   }}</h2>
+<h2>Welcome {{ auth_name }}</h2>
 <p>Select an option from the navigation bar.</p>
 
 {% if state == "admin" %}

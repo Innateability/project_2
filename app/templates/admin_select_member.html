@@ -1,28 +1,24 @@
 {% extends "base.html" %}
-{% set page_title = "Recipients" %}
+{% set page_title = "Select Member" %}
 
 {% block content %}
 
+<a href="{{ url_for('admin.objectives',auth_id=admin_id) }}" class="obj-style" style="color: greenyellow;font-size: 20px;">See All Objectives</a>
 
-<form method="GET" action="{{ url_for('admin.add_objective') }}">
+{% for auth in names_auth %}
+
+<a href="{{ url_for('admin.objectives', auth_id=auth.id) }}" style="text-decoration: none;">
     <div style="display:flex; flex-direction:column; gap:15px;">
-
-        {% for auth in names_auth %}
-        <label class="select-card">
-            <input type="checkbox" name="recipients[]" value="{{ auth.id }}">
-            
+        <div class="select-card">
             <div class="card-content">
                 <strong>{{ auth.name }}</strong><br>
                 <small>{{ auth.email }}</small>
             </div>
-        </label>
-        {% endfor %}
+        </div>
+    </div>
+</a><br>
+{% endfor %}
 
-    </div><br><br><br>
-
-    
-    <button type="submit">Continue</button>
-</form><br><br><br>
 
 <style>
 

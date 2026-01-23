@@ -1,5 +1,5 @@
 from flask import Blueprint,url_for,render_template,redirect,flash,get_flashed_messages,request,session,abort
-from app.models import Authentication,Objective,TeamLeader,Employee,Review,ObjectiveBatch,AdminObjective,Feedback,TeamLeaderFeedback,TeamLeaderFeedback
+from app.models import Authentication,Objective,TeamLeader,Employee,Review,ObjectiveBatch,AdminObjective,Feedback,TeamLeaderFeedback,TeamLeaderFeedback,EmployeeEmail
 from app import db
 from sqlalchemy.exc import IntegrityError
 from app.utils import login_required,team_leader_required
@@ -11,7 +11,8 @@ team_leader_bp = Blueprint("team_leader",__name__,url_prefix="/Team-Leader")
 @login_required
 @team_leader_required
 def home():
-    return render_template("home.html",state="team_leader",role="team_leader")
+    auth_name = Authentication.query.get(session["user_id"]).name
+    return render_template("home.html",state="team_leader",role="team_leader",auth_name=auth_name)
 
 @team_leader_bp.route("/logout",methods=["POST","GET"])
 @login_required
@@ -53,6 +54,18 @@ def recipients():
     names_auth = Authentication.query.join(Employee).filter(Employee.department_id == department_id,Authentication.id != current_auth.id).order_by(Authentication.name.asc()).all()
     print(names_auth)
     return render_template("team_leader_recipients.html",names_auth=names_auth)
+
+@team_leader_bp.route("/select_member")
+@login_required
+@team_leader_required
+def select_member():
+    current_user_id = session["user_id"]
+    print(current_user_id)
+    current_user_department_id = (Authentication.query.get(current_user_id).team_leader.department_id)
+    names_auth = (Authentication.query.join(Authentication.employee).filter(Authentication.id != current_user_id,Employee.department_id == current_user_department_id).order_by(Authentication.name.asc()).all())
+
+    print(names_auth)
+    return render_template("team_leader_select_member.html",names_auth=names_auth,admin_id=current_user_id)
 
 
 @team_leader_bp.route("/add_objectives",methods=["POST","GET"])
@@ -104,11 +117,12 @@ def add_objective():
                     assigned_by=team_leader,
                     batch=batch
                 )
+                auth_id = recipient.id
                 db.session.add(objective)
 
         db.session.commit()
         flash("Objectives created successfully", "success")
-        return redirect(url_for("team_leader.objectives"))
+        return redirect(url_for("team_leader.objectives",auth_id=auth_id))
 
     # ================= GET REQUEST =================
 
@@ -141,16 +155,20 @@ def edit_objective(objective_id):
         category = request.form.get("category")
         weight = int(request.form.get("weight"))
         score_range = int(request.form.get("score_range"))
-        obj.batch.title = title
-        obj.batch.year = year
+        batch = ObjectiveBatch.query.filter_by(title=title,year=year).first()
+        obj = Objective.query.filter_by(id=objective_id).first()
+        auth_id = obj.assigned_to_id
+        if not batch:
+            batch = ObjectiveBatch(title=title,year=year)
+        print(obj,year,category,weight,score_range,)
         obj.objective = objective_text
         obj.category = category
         obj.weight = weight
         obj.score_range = score_range
-
+        obj.batch = batch
         db.session.commit()
         flash(f"Objective {title} edited successfully", "success")
-        return redirect(url_for("team_leader.objectives"))
+        return redirect(url_for("team_leader.objectives",auth_id=auth_id))
 
     department = department_head.department
     employees = department.employees
@@ -158,52 +176,60 @@ def edit_objective(objective_id):
     employee_names = [emp.authentication.name for emp in employees]
     return render_template("team_leader_edit_objective.html",role="team_leader",state="team_leader",employee_names=employee_names,objective=objective,Title="EDIT OBJECTIVES")
 
-@team_leader_bp.route("/objectives")
+@team_leader_bp.route("/received_objectives")
 @login_required
 @team_leader_required
-def objectives():
-    auth = Authentication.query.get(session["user_id"])
-
-   
-    team_leader = auth.team_leader
-    if not team_leader:
-        flash("Unauthorized access", "error")
-        return redirect(url_for("auth.logout"))
-
-   
-    assigned_objectives = (
-        Objective.query
-        .filter_by(assigned_by=team_leader)
-        .all()
-    )
-
-    
-    received_objectives = (
-        AdminObjective.query
-        .filter_by(assigned_to=auth)
-        .all()
-    )
-
-    grouped = defaultdict(list)
-    admin_grouped = defaultdict(list)
-
-    
-    for obj in assigned_objectives:
-        key = (obj.batch.title, obj.assigned_to_id)
-        grouped[key].append(obj)
-
-    
+def received_objectives():
+    team_leader_auth =  Authentication.query.get(session.get("user_id"))
+    received_objectives = (AdminObjective.query.filter_by(assigned_to=team_leader_auth).all())
+    team_leader_grouped = defaultdict(list)
     for obj in received_objectives:
-        key = (obj.admin_batch.title, obj.assigned_by_id)
-        admin_grouped[key].append(obj)
+        key = obj.admin_batch.title
+        team_leader_grouped[key].append(obj)
+    return render_template("team_leader_received_objectives.html",team_leader_grouped_objectives=team_leader_grouped,state='team_leader')
 
-    return render_template(
-        "team_leader_objectives.html",
-        grouped_objectives=grouped,
-        admin_grouped_objectives=admin_grouped,
-        role="team_leader",
-        state="team_leader"
-    )
+
+@team_leader_bp.route("/objectives/<int:auth_id>")
+@login_required
+@team_leader_required
+def objectives(auth_id):
+    auth = Authentication.query.get(auth_id)
+    print(auth)
+    team_leader_auth =  Authentication.query.get(session.get("user_id")).team_leader
+    print(team_leader_auth)
+    # print(admin_auth)
+    if auth.team_leader:
+        mode = "See All"
+        # print(mode)
+        grouped = defaultdict(list)
+        print(grouped)
+        print(auth.id)
+        print(auth.admin_objectives)
+        objectives = Objective.query.filter(Objective.assigned_by_id == team_leader_auth.id).all()
+        for obj in objectives:
+            print(obj)
+            key = (obj.batch.title)
+            grouped[key].append(obj)
+            print(grouped)
+        username = auth.name
+        return render_template("team_leader_assigned_objectives.html",grouped_objectives=grouped,state='team_leader',name=username,mode=mode,auth=auth)
+    if auth.employee:
+        mode = "See Objective"
+        print(mode)
+        grouped = defaultdict(list)
+        print(auth.id)
+        print(auth.objectives)
+        objectives = Objective.query.filter(Objective.assigned_by_id == team_leader_auth.id,Objective.assigned_to_id == auth.id).all()
+        print(objectives)
+        for obj in objectives:
+            print(obj)
+            key = (obj.batch.title)
+            grouped[key].append(obj)
+        print(grouped)
+        username = auth.name
+        print(username)
+        print(33333)
+        return render_template("team_leader_assigned_objectives.html",grouped_objectives=grouped,state='team_leader',name=username,mode=mode,auth=auth)
 
 @team_leader_bp.route("/review/<int:objective_id>", methods=["POST", "GET"])
 @login_required
@@ -318,10 +344,13 @@ def objective_overview(objective_id, assigned_by_id):
 @team_leader_required
 def delete_objective(objective_id,assigned_by_id):
     assigned_by_auth = Authentication.query.get(assigned_by_id)
+    auth_id = assigned_by_auth.id
     if assigned_by_auth.role == "team_leader":
+        print("mine")
         assigned_by = assigned_by_auth.team_leader
         objective = Objective.query.get(objective_id)
     elif assigned_by_auth.role == "admin":
+        print("mines")
         assigned_by = assigned_by_auth.administrator
         objective = AdminObjective.query.get(objective_id)
     else:
@@ -330,7 +359,7 @@ def delete_objective(objective_id,assigned_by_id):
         db.session.delete(objective)
         db.session.commit()
         flash(f"Objective '{objective.objective}' deleted successfully", "success")
-        return redirect(url_for("team_leader.objectives"))
+        return redirect(url_for("team_leader.objectives",auth_id=auth_id))
     return render_template("delete_objective.html", objective=objective, role="team_leader", state="team_leader")
 
 @team_leader_bp.route("/feedback/<int:objective_id>", methods=["GET", "POST"])
@@ -350,12 +379,10 @@ def feedback(objective_id):
         admin_objective.admin_review.team_leader_feedback = fb
         db.session.commit()
 
-        return redirect(
-            url_for("team_leader.objective_overview", objective_id=admin_objective.id)
-        )
+        return redirect(url_for("team_leader.objective_overview", objective_id=admin_objective.id,assigned_by_id=admin_objective.assigned_by_id))
 
     return render_template(
-        "feedback.html",
+        "team_leader_feedback.html",
         objective=admin_objective,
         role="employee",
         state="employee",
@@ -367,16 +394,17 @@ def feedback(objective_id):
 @team_leader_required
 def edit_feedback(objective_id):
     objective = AdminObjective.query.get(objective_id)
+    auth_id = objective.assigned_to_id
 
     
-    if objective.assigned_to.authentication.id != session["user_id"]:
+    if objective.assigned_to.id != session["user_id"]:
         flash("Unauthorized", "error")
-        return redirect(url_for("team_leader.objectives"))
+        return redirect(url_for("team_leader.objectives",auth_id=auth_id))
 
     admin_review = objective.admin_review
     if not admin_review:
         flash("No admin review yet", "error")
-        return redirect(url_for("team_leader.objectives"))
+        return redirect(url_for("team_leader.objectives",auth_id=auth_id))
 
     if request.method == "POST":
         feedback_text = request.form.get("feedback")
@@ -392,9 +420,7 @@ def edit_feedback(objective_id):
             admin_review.team_leader_feedback.feedback = feedback_text
 
         db.session.commit()
-        return redirect(
-            url_for("team_leader.objective_overview", objective_id=objective.id)
-        )
+        return redirect(url_for("team_leader.objective_overview", objective_id=objective.id,assigned_by_id=objective.assigned_by_id))
 
     feedback_text = (
         admin_review.team_leader_feedback.feedback
@@ -403,7 +429,7 @@ def edit_feedback(objective_id):
     )
 
     return render_template(
-        "feedback.html",
+        "team_leader_edit_feedback.html",
         objective=objective,
         feedback=feedback_text,
         role="team_leader"

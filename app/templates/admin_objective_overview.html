@@ -12,10 +12,7 @@
   {{ "(Team leader)" if objective.assigned_to.team_leader else "" }}
 </p>
 
-<a href="{{ url_for(
-                'admin.edit_objective',
-                objective_id=objective.id,
-            ) }}"
+<a href="{{ url_for('admin.edit_objective',objective_id=objective.id) }}"
                class="obj-style"
                style="margin-left:200px;background-color: blue;font-size: 20px;margin-left: 0px;">
                 Edit Objective
@@ -78,17 +75,5 @@
     {% endif %}
     
     <br><br>
-
-
-   
-
-<a href="{{ url_for(
-                'admin.objectives_overview',
-                objective_id=objective.id,
-            ) }}"
-               class="obj-style"
-               style="color: greenyellow;font-size: 20px;">
-                Back
-            </a>
 
 {% endblock %}

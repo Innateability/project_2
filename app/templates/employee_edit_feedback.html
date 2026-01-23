@@ -20,7 +20,7 @@
     <p><b>Review:</b> {{ objective.admin_review.review }}</p>
     <p><b>Score:</b> {{ objective.admin_review.score }}</p>
 
-<form method="POST">
+<form method="POST" action="{{ url_for(employee.edit_feedback) }}">
     <label>Feedback (optional)</label>
     <textarea name="feedback">objective.review.feedback.feedback</textarea>
 

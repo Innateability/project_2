@@ -76,16 +76,6 @@
             Score: {{ objective.admin_review.score }} <br>
             Review: {{ objective.admin_review.review or "No Review" }}
         </div>
-        <a href="{{ url_for(
-            'team_leader.edit_review',
-            objective_id=objective.id,
-            assigned_by_id=objective.assigned_by.authentication.id
-        ) }}"
-           class="obj-style"
-           style="background-color:blue; color:white; margin-right:10px;;margin-left: 0px;">
-            Edit review
-        </a>
-
         {% if objective.admin_review.team_leader_feedback %}
             <div style="background:#eef7ff; padding:15px; border-radius:8px; margin-bottom:20px;">
                 <strong>Team leader Feedback</strong><br>
@@ -105,7 +95,7 @@
             ) }}"
                class="obj-style"
                style="margin-left:200px;padding-left: 20px;">
-                Give Review for "{{ objective.objective }}"
+                Give Review
             </a>
         {% endif %}
     {% endif %}
@@ -114,20 +104,39 @@
 
 
     
-    {% if objective.assigned_to.admin_objectives %}
+    {% if objective.admin_batch %}
     {% if objective.admin_review %}
+    {% if not objective.admin_review.team_leader_feedback %}
             <a href="{{ url_for(
                 'team_leader.feedback',
                 objective_id=objective.id,
             ) }}"
                class="obj-style">
-                Give Feedback for "{{ objective.objective }}"
+            Give Feedback 
             </a>
+        {% endif %}
         {% endif %}
     {% endif %}
 
     <br><br>
 
+    {% if objective.admin_batch %}
+    {% if objective.admin_review %}
+    {% if objective.admin_review.team_leader_feedback %}
+            <a href="{{ url_for(
+                'team_leader.edit_feedback',
+                objective_id=objective.id,
+            ) }}"
+               class="obj-style">
+            Edit Feedback 
+            </a>
+        {% endif %}
+        {% endif %}
+    {% endif %}
+
+    <br><br>
+
+    {% if objective.batch %}
     <a href="{{ url_for(
             'team_leader.delete_objective',
             objective_id=objective.id,
@@ -137,18 +146,11 @@
            style="background-color:red; color:white; margin-right:10px;">
             Delete "{{ objective.objective or objective.objective }}"
         </a>
+    {% endif %}
 
 
     
-    <a href="{{ url_for(
-                'team_leader.objectives_overview',
-                objective_id=objective.id,
-            ) }}"
-               class="obj-style"
-               style="color: greenyellow;font-size: 20px;">
-                Back
-            </a>
-
+    
     
 
 {% endblock %}
