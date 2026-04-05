@@ -1,22 +1,36 @@
 {% extends "base.html" %}
 {% set page_title = "Feedback" %}
-
 {% block content %}
-<h2>{{ objective.title }}</h2>
+<div style="max-width:580px">
+    <div class="page-header"><h1 class="page-title">{{ Title }}</h1></div>
 
-{% if objective.review %}
-<p><b>Review:</b> {{ objective.review.review }}</p>
-<p><b>Score:</b> {{ objective.review.score }}</p>
-{% if objective.admin_review %}
-<p><b>Review:</b> {{ objective.admin_review.review }}</p>
-<p><b>Score:</b> {{ objective.admin_review.score }}</p>
-{% endif %}
-{% endif %}
-<form method="POST">
-    <label>Feedback (optional)</label>
-    <textarea name="feedback">{{ feedback }}</textarea>
+    {% if objective.review %}
+    <div class="review-box mb-4">
+        <strong class="text-small text-muted">Team Leader Review</strong>
+        <p style="margin:8px 0"><strong>Score:</strong> {{ objective.review.score }}</p>
+        <p>{{ objective.review.review }}</p>
+    </div>
+    {% elif objective.admin_review %}
+    <div class="review-box mb-4">
+        <strong class="text-small text-muted">Admin Review</strong>
+        <p style="margin:8px 0"><strong>Score:</strong> {{ objective.admin_review.score }}</p>
+        <p>{{ objective.admin_review.review }}</p>
+    </div>
+    {% endif %}
 
-    <button type="submit">Submit Feedback</button>
-</form>
-
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="form-group">
+                    <label>Your Feedback</label>
+                    <textarea name="feedback" placeholder="Write your feedback...">{{ feedback if feedback is defined else '' }}</textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Submit Feedback</button>
+                    <button type="button" class="btn btn-ghost" onclick="history.back()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}

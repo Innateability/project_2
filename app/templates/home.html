@@ -1,16 +1,49 @@
 {% extends "base.html" %}
-{% set page_title = "HOME" %}
-
+{% set page_title = "Dashboard" %}
 {% block content %}
-
-
-<h2>Welcome {{ auth_name }}</h2>
-<p>Select an option from the navigation bar.</p>
-
-{% if state == "admin" %}
-
-<a href="{{ url_for('admin.add_member') }}" class="obj-style">Add Member</a>
-
-{% endif %}
-
+<div class="welcome-banner">
+    <div>
+        <h2>Welcome, {{ auth_name }}</h2>
+        <p>
+            {% if state == 'admin' %}Manage objectives and review performance across the organisation.
+            {% elif state == 'team_leader' %}Assign and review objectives for your team members.
+            {% else %}Track your assigned objectives and submit feedback.{% endif %}
+        </p>
+    </div>
+    <div class="welcome-actions">
+        {% if state == 'admin' %}
+            <a href="{{ url_for('admin.add_member') }}" class="btn btn-white">+ Add Member</a>
+            <a href="{{ url_for('admin.recipients') }}" class="btn btn-white">Assign Objectives</a>
+        {% elif state == 'team_leader' %}
+            <a href="{{ url_for('team_leader.recipients') }}" class="btn btn-white">+ Assign Objectives</a>
+            <a href="{{ url_for('team_leader.received_objectives') }}" class="btn btn-white">View Received</a>
+        {% else %}
+            <a href="{{ url_for('employee.objectives') }}" class="btn btn-white">My Objectives</a>
+        {% endif %}
+    </div>
+</div>
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-label">Role</div>
+        <div style="font-size:1.1rem;font-weight:600;margin-top:4px">{{ state | replace('_', ' ') | title }}</div>
+    </div>
+    {% if state == 'admin' %}
+    <div class="stat-card">
+        <div class="stat-label">Quick Action</div>
+        <a href="{{ url_for('admin.add_member') }}" class="btn btn-primary btn-sm mt-2">Add Member</a>
+    </div>
+    {% endif %}
+</div>
+<div class="card">
+    <div class="card-header"><span class="card-title">Account</span></div>
+    <div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap">
+        {% if state == 'admin' %}
+        <a href="{{ url_for('admin.delete_account') }}" class="btn btn-outline text-red" style="border-color:#f5c6c2">Delete Account</a>
+        {% elif state == 'team_leader' %}
+        <a href="{{ url_for('team_leader.delete_account') }}" class="btn btn-outline text-red" style="border-color:#f5c6c2">Delete Account</a>
+        {% else %}
+        <a href="{{ url_for('employee.delete_account') }}" class="btn btn-outline text-red" style="border-color:#f5c6c2">Delete Account</a>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

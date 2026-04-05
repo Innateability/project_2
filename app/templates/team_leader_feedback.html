@@ -1,18 +1,26 @@
 {% extends "base.html" %}
 {% set page_title = "Give Feedback" %}
-
 {% block content %}
-<h2>{{ objective.admin_batch.title }}</h2>
-
-
-<p><b>Review:</b> {{ objective.admin_review.review }}</p>
-<p><b>Score:</b> {{ objective.admin_review.score }}</p>
-
-<form method="POST" action="{{ url_for('team_leader.feedback',objective_id=objective.id,assigned_by_id=objective.assigned_by_id) }}">
-    <label>Feedback</label>
-    <textarea name="feedback"></textarea>
-
-    <button type="submit">Submit Feedback</button>
-</form>
-
+<div style="max-width:580px">
+    <div class="page-header"><h1 class="page-title">Give Feedback</h1></div>
+    <div class="review-box mb-4">
+        <strong class="text-small text-muted">Admin Review</strong>
+        <p style="margin:8px 0"><strong>Score:</strong> {{ objective.admin_review.score }}</p>
+        <p>{{ objective.admin_review.review }}</p>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('team_leader.feedback', objective_id=objective.id) }}">
+                <div class="form-group">
+                    <label>Your Feedback</label>
+                    <textarea name="feedback" placeholder="Write your feedback..." required></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Submit Feedback</button>
+                    <button type="button" class="btn btn-ghost" onclick="history.back()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -1,33 +1,32 @@
 {% extends "base.html" %}
-{% set page_title = "OBJECTIVES" %}
-
+{% set page_title = "Received Objectives" %}
 {% block content %}
-
-<h2>Received Objectives</h2>
-
-    {% for title , objs in team_leader_grouped_objectives.items() %}
+<div class="page-header">
+    <h1 class="page-title">Received Objectives</h1>
+    <p class="page-sub">Objectives assigned to you by Admin</p>
+</div>
+<div class="obj-list">
+    {% for title, objs in team_leader_grouped_objectives.items() %}
     {% set ns = namespace(reviewed=false) %}
-    {% for obj in objs %}
-    {% if obj.review %}
-    {% set ns.reviewed = true %}
-    {% endif %}
-    {% endfor %}
-
-    <a href="{{ url_for('team_leader.objectives_overview', objective_id=objs[0].id) }}" style="text-decoration:none;">
-        <div class="obj-card" style="background-color:white;width:100%;max-width:700px;border:2px solid black;border-radius:10px;
-            padding:20px;
-            margin:20px;
-            box-shadow:0 8px 20px rgba(0,0,0,0.3);
-            display:grid;
-            grid-template-columns:80% 20%;
-            overflow:hidden;
-            border-right: 10px solid {{ 'green' if ns.reviewed else 'none' }};">
-            <div style="overflow:hidden; text-overflow:ellipsis;">
-            {{ title }}
+    {% for obj in objs %}{% if obj.admin_review %}{% set ns.reviewed = true %}{% endif %}{% endfor %}
+    <a href="{{ url_for('team_leader.objectives_overview', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
+        <div>
+            <div class="obj-card-title">{{ title }}</div>
+            <div class="obj-card-meta">
+                <span>{{ objs|length }} objective{{ 's' if objs|length != 1 }}</span>
+                <span>From: Admin</span>
             </div>
         </div>
+        <div class="obj-card-right">
+            <span class="badge {{ 'badge-green' if ns.reviewed else 'badge-ash' }}">{{ 'Reviewed' if ns.reviewed else 'Pending' }}</span>
+            <span class="btn btn-sm btn-outline">View &rarr;</span>
+        </div>
     </a>
+    {% else %}
+    <div class="empty-state">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        <h3>No objectives received yet</h3>
+    </div>
     {% endfor %}
 </div>
-
 {% endblock %}

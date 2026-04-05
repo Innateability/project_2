@@ -1,52 +1,27 @@
 {% extends "base.html" %}
 {% set page_title = "Select Member" %}
-
 {% block content %}
-<a href="{{ url_for('team_leader.received_objectives') }}" class="obj-style" style="color: greenyellow;font-size: 20px;">See Received Objectives</a>
-
-<a href="{{ url_for('team_leader.objectives',auth_id=admin_id) }}" class="obj-style" style="color: greenyellow;font-size: 20px;">See All Assigned Objectives</a>
-
-{% for auth in names_auth %}
-
-<a href="{{ url_for('team_leader.objectives', auth_id=auth.id) }}" style="text-decoration: none;">
-    <div style="display:flex; flex-direction:column; gap:15px;">
-        <div class="select-card">
-            <div class="card-content">
-                <strong>{{ auth.name }}</strong><br>
-                <small>{{ auth.email }}</small>
-            </div>
-        </div>
+<div class="page-header">
+    <h1 class="page-title">Select Member</h1>
+    <div style="display:flex;gap:10px">
+        <a href="{{ url_for('team_leader.received_objectives') }}" class="btn btn-outline">Received Objectives</a>
+        <a href="{{ url_for('team_leader.objectives', auth_id=admin_id) }}" class="btn btn-outline">All Assigned</a>
     </div>
-</a><br>
-{% endfor %}
-
-
-<style>
-
-.select-card input {
-    display: none;
-}
-
-
-.select-card {
-    cursor: pointer;
-}
-
-.card-content {
-    background: white;
-    border: 2px solid #000;
-    border-radius: 10px;
-    padding: 15px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    transition: all 0.2s ease;
-}
-
-
-.select-card input:checked + .card-content {
-    border-color: green;
-    background-color: #eaffea;
-    box-shadow: 0 10px 25px rgba(0,128,0,0.3);
-}
-</style>
-
+</div>
+<div class="obj-list">
+    {% for auth in names_auth %}
+    <a href="{{ url_for('team_leader.objectives', auth_id=auth.id) }}" class="obj-card">
+        <div>
+            <div class="obj-card-title">{{ auth.name }}</div>
+            <div class="obj-card-meta"><span>{{ auth.email }}</span></div>
+        </div>
+        <span class="btn btn-sm btn-outline">View Objectives &rarr;</span>
+    </a>
+    {% else %}
+    <div class="empty-state">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <h3>No team members found</h3>
+    </div>
+    {% endfor %}
+</div>
 {% endblock %}

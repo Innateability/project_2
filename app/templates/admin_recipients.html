@@ -1,55 +1,51 @@
 {% extends "base.html" %}
-{% set page_title = "Recipients" %}
-
+{% set page_title = "Select Recipients" %}
 {% block content %}
-
-
-<form method="GET" action="{{ url_for('admin.add_objective') }}">
-    <div style="display:flex; flex-direction:column; gap:15px;">
-
-        {% for auth in names_auth %}
-        <label class="select-card">
-            <input type="checkbox" name="recipients[]" value="{{ auth.id }}">
-            
-            <div class="card-content">
-                <strong>{{ auth.name }}</strong><br>
-                <small>{{ auth.email }}</small>
-            </div>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Select Recipients</h1>
+        <p class="page-sub">Choose who to assign objectives to</p>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">Members</span>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);cursor:pointer">
+            <input type="checkbox" id="selectAll" style="width:auto"> Select all
         </label>
-        {% endfor %}
-
-    </div><br><br><br>
-
-    
-    <button type="submit">Continue</button>
-</form><br><br><br>
-
-<style>
-
-.select-card input {
-    display: none;
-}
-
-
-.select-card {
-    cursor: pointer;
-}
-
-.card-content {
-    background: white;
-    border: 2px solid #000;
-    border-radius: 10px;
-    padding: 15px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    transition: all 0.2s ease;
-}
-
-
-.select-card input:checked + .card-content {
-    border-color: green;
-    background-color: #eaffea;
-    box-shadow: 0 10px 25px rgba(0,128,0,0.3);
-}
-</style>
-
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('admin.add_objective') }}">
+            <div class="recipient-grid">
+                {% for auth in names_auth %}
+                <label class="recipient-card">
+                    <input type="checkbox" name="recipients[]" value="{{ auth.id }}" class="rcb">
+                    <div class="recipient-inner">
+                        <div class="recipient-check"></div>
+                        <div>
+                            <div style="font-weight:600;font-size:0.9rem">{{ auth.name }}</div>
+                            <div class="text-small text-muted">{{ auth.email }}
+                                {% if auth.administrator %} &mdash; <span class="badge badge-blue">Admin</span>
+                                {% elif auth.team_leader %} &mdash; <span class="badge badge-ash">Team Leader</span>
+                                {% elif auth.employee %} &mdash; <span class="badge badge-green">Employee</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </label>
+                {% else %}
+                <p class="text-muted">No members found.</p>
+                {% endfor %}
+            </div>
+            <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px">
+                <a href="{{ url_for('admin.home') }}" class="btn btn-ghost">Cancel</a>
+                <button type="submit" class="btn btn-primary">Continue to Objectives</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+document.getElementById('selectAll').addEventListener('change', function() {
+    document.querySelectorAll('.rcb').forEach(cb => cb.checked = this.checked);
+});
+</script>
 {% endblock %}

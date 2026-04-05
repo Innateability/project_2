@@ -1,84 +1,81 @@
 {% extends "base.html" %}
-{% set page_title = "Add Objective" %}
-
+{% set page_title = "Add Objectives" %}
 {% block content %}
-<h2>{{ Title }}</h2>
-
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Add Objectives</h1>
+        <p class="page-sub">Assigning to:
+            {% for r in recipients %}<strong>{{ r.name }}</strong>{% if not loop.last %}, {% endif %}{% endfor %}
+        </p>
+    </div>
+</div>
 <form method="POST" onsubmit="return validateWeights()">
     {% for recipient in recipients %}
-    <input type="hidden" name="recipients[]" value="{{ recipient.id }}">
+        <input type="hidden" name="recipients[]" value="{{ recipient.id }}">
     {% endfor %}
-    <label><b>Title (shared by all objectives)</b></label>
-    <input type="text" name="title" required>
-    <label>Year</label>
-    <input type="number" name="year" required>
-    <hr>
-    <div id="objectives-container">
-        <div class="objective-block">
-            <h4>Objective 1</h4>
-            <label>Objective</label>
-            <input type="text" name="objectives[]" required>
-            <label>Description</label>
-            <textarea name="descriptions[]" required></textarea>
-            <label>Category</label>
-            <input type="text" name="categories[]" required>
-            <label>Weight (%)</label>
-            <input type="number" name="weights[]" required>
-            <label>Score Range</label>
-            <input type="number" name="score_ranges[]" required>
-            <hr>
+    <div class="card mb-4">
+        <div class="card-header"><span class="card-title">Batch Details</span></div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Batch Title</label>
+                    <input type="text" name="title" placeholder="e.g. Q1 2025 Performance" required>
+                </div>
+                <div class="form-group">
+                    <label>Year</label>
+                    <input type="number" name="year" placeholder="2025" min="2020" max="2099" required>
+                </div>
+            </div>
         </div>
     </div>
-
-   
-    <button type="button" onclick="addObjective()">➕ Add Another Objective</button>
-
-    <br><br>
-
-   
-    
-    <br><br>
-
-    <button type="submit">Submit Objectives</button>
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Objectives</span>
+            <button type="button" class="btn btn-primary btn-sm" onclick="addObjective()">+ Add Objective</button>
+        </div>
+        <div class="card-body">
+            <div id="objectives-container"></div>
+            <p class="text-small mt-2" style="color:var(--text-muted)">Total weight: <strong id="weightTotal">0</strong>% (must equal 100%)</p>
+        </div>
+        <div style="padding:14px 22px;border-top:1px solid var(--ash-mid);display:flex;justify-content:flex-end;gap:10px">
+            <a href="{{ url_for('admin.recipients') }}" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save Objectives</button>
+        </div>
+    </div>
 </form>
-
 <script>
-let count = 1;
-
+let count = 0;
 function addObjective() {
     count++;
-    const container = document.getElementById("objectives-container");
-    const block = document.createElement("div");
-    block.className = "objective-block";
-    block.innerHTML = `
-        <h4>Objective ${count}</h4>
-        <label>Objective</label>
-        <input type="text" name="objectives[]" required>
-        <label>Description</label>
-        <textarea name="descriptions[]" required></textarea>
-        <label>Category</label>
-        <input type="text" name="categories[]" required>
-        <label>Weight (%)</label>
-        <input type="number" name="weights[]" required>
-        <label>Score Range</label>
-        <input type="number" name="score_ranges[]" required>
-        <hr>
-    `;
-    container.appendChild(block);
+    const div = document.createElement('div');
+    div.className = 'obj-builder';
+    div.id = 'obj-' + count;
+    div.innerHTML = `
+        <div class="obj-builder-header">
+            <span class="obj-builder-label">Objective ${count}</span>
+            <button type="button" class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:1px solid #f5c6c2" onclick="removeObj('obj-${count}')">Remove</button>
+        </div>
+        <div class="obj-builder-grid">
+            <div class="form-group" style="margin:0"><label>Objective</label><input type="text" name="objectives[]" placeholder="Describe the objective" required></div>
+            <div class="form-group" style="margin:0"><label>Category</label><input type="text" name="categories[]" placeholder="e.g. Sales" required></div>
+            <div class="form-group" style="margin:0"><label>Weight (%)</label><input type="number" name="weights[]" placeholder="20" min="1" max="100" required onchange="updateTotal()"></div>
+            <div class="form-group" style="margin:0"><label>Score Range</label><input type="number" name="score_ranges[]" placeholder="100" min="1" required></div>
+        </div>`;
+    document.getElementById('objectives-container').appendChild(div);
 }
-
-function validateWeights() {
-    const weights = document.getElementsByName("weights[]");
+function removeObj(id) { document.getElementById(id)?.remove(); updateTotal(); }
+function updateTotal() {
     let total = 0;
-    for (let i = 0; i < weights.length; i++) {
-        total += Number(weights[i].value || 0);
-    }
-    if (total !== 100) {
-        alert("Total weight must equal 100%. Current total: " + total);
-        return false;
-    }
+    document.getElementsByName("weights[]").forEach(w => total += Number(w.value || 0));
+    document.getElementById('weightTotal').textContent = total;
+    document.getElementById('weightTotal').style.color = total === 100 ? 'var(--success)' : 'var(--red)';
+}
+function validateWeights() {
+    let total = 0;
+    document.getElementsByName("weights[]").forEach(w => total += Number(w.value || 0));
+    if (total !== 100) { alert("Total weight must equal 100%. Current total: " + total + "%"); return false; }
     return true;
 }
+addObjective();
 </script>
-
 {% endblock %}

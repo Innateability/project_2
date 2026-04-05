@@ -1,89 +1,50 @@
 {% extends "base.html" %}
-{% set page_title = "OBJECTIVE OVERVIEW" %}
-
+{% set page_title = "Objective Overview" %}
 {% block content %}
-
-<h2>{{ objective.objective }}</h2>
-
-<p>
-  Assigned by {{ objective.assigned_by.name }}
-</p>
-
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ objective.objective }}</h1>
+        <p class="page-sub">{{ title }}, {{ year }} &mdash; {{ employee }}</p>
+    </div>
+</div>
 
 {% if objective.batch %}
-
-    <div class="review-box">
-        <strong>Team Leader Review</strong><br>
-
-        {% if objective.review %}
-            Score: {{ objective.review.score }} <br>
-            Review: {{ objective.review.review }}
-        {% else %}
-            No review yet
-        {% endif %}
-    </div>
-
-    {% if objective.review and objective.review.feedback %}
-        <div class="feedback-box">
-            <strong>Your Feedback</strong><br>
-            {{ objective.review.feedback.feedback }}
-            <a href="{{ url_for('employee.edit_feedback',objective_id=objective.id,role='team_leader') }}" class="obj-style">
-                Edit Feedback
-            </a>
-        </div>
-    {% elif objective.review %}
-        <p>No feedback yet</p>
+<div class="review-box mb-3">
+    <strong class="text-small text-muted">Team Leader Review</strong>
+    {% if objective.review %}
+    <p style="margin:8px 0"><strong>Score:</strong> {{ objective.review.score }} &nbsp;&nbsp; <strong>Review:</strong> {{ objective.review.review }}</p>
+    {% else %}
+    <p class="text-muted" style="margin:8px 0">No review yet.</p>
     {% endif %}
-
+</div>
+{% if objective.review and objective.review.feedback %}
+<div class="feedback-box mb-3">
+    <strong class="text-small text-muted">Your Feedback</strong><br><br>
+    {{ objective.review.feedback.feedback }}
+</div>
+<a href="{{ url_for('employee.edit_feedback', objective_id=objective.id, role='team_leader') }}" class="btn btn-outline btn-sm mb-3">Edit Feedback</a>
+{% elif objective.review and not objective.review.feedback %}
+<a href="{{ url_for('employee.feedback', objective_id=objective.id, role='team_leader') }}" class="btn btn-primary btn-sm mb-3">Give Feedback</a>
+{% endif %}
 {% endif %}
 
-{# ================= ADMIN OBJECTIVE ================= #}
 {% if objective.admin_batch %}
-
-    <div class="review-box">
-        <strong>Admin Review</strong><br>
-
-        {% if objective.admin_review %}
-            Score: {{ objective.admin_review.score }} <br>
-            Review: {{ objective.admin_review.review }}
-        {% else %}
-            No review yet
-        {% endif %}
-    </div>
-
-    {% if objective.admin_review and objective.admin_review.employee_feedback %}
-        <div class="feedback-box">
-            <strong>Your Feedback</strong><br>
-            {{ objective.admin_review.employee_feedback.feedback }}
-        </div>
-        <a href="{{ url_for('employee.edit_feedback',objective_id=objective.id,role='admin') }}" class="obj-style">
-            Edit Feedback
-        </a>
-    {% elif objective.admin_review %}
-        <p>No feedback yet</p>
+<div class="review-box mb-3">
+    <strong class="text-small text-muted">Admin Review</strong>
+    {% if objective.admin_review %}
+    <p style="margin:8px 0"><strong>Score:</strong> {{ objective.admin_review.score }} &nbsp;&nbsp; <strong>Review:</strong> {{ objective.admin_review.review }}</p>
+    {% else %}
+    <p class="text-muted" style="margin:8px 0">No review yet.</p>
     {% endif %}
-
+</div>
+{% if objective.admin_review and objective.admin_review.employee_feedback %}
+<div class="feedback-box mb-3">
+    <strong class="text-small text-muted">Your Feedback</strong><br><br>
+    {{ objective.admin_review.employee_feedback.feedback }}
+</div>
+<a href="{{ url_for('employee.edit_feedback', objective_id=objective.id, role='admin') }}" class="btn btn-outline btn-sm mb-3">Edit Feedback</a>
+{% elif objective.admin_review and not objective.admin_review.employee_feedback %}
+<a href="{{ url_for('employee.feedback', objective_id=objective.id, role='admin') }}" class="btn btn-primary btn-sm mb-3">Give Feedback</a>
 {% endif %}
-
-{# ================= GIVE FEEDBACK ================= #}
-{% if objective.review and objective.review.review and not objective.review.feedback %}
-    <a href="{{ url_for(
-        'employee.feedback',
-        objective_id=objective.id,
-        role='team_leader'
-    ) }}" class="obj-style">
-        Give Feedback
-    </a>
 {% endif %}
-
-{% if objective.admin_review and objective.admin_review.review and not objective.admin_review.employee_feedback %}
-    <a href="{{ url_for(
-        'employee.feedback',
-        objective_id=objective.id,
-        role='admin'
-    ) }}" class="obj-style">
-        Give Feedback
-    </a>
-{% endif %}
-
 {% endblock %}

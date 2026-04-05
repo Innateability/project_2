@@ -1,86 +1,62 @@
 {% extends "base.html" %}
-{% set page_title = "OBJECTIVES" %}
-
+{% set page_title = "Objectives" %}
 {% block content %}
-
-
-
-{% if mode == "See Objective" %}
-
-<a href="{{ url_for('admin.add_objective', recipient_id=auth.id) }}" class="obj-style">Add Objective</a>
-
-<h2>{{ name }}'s Objectives</h2>
-
-{% for title, objs in grouped_objectives.items() %}
-    {% set ns = namespace(reviewed=false) %}
-    {% for obj in objs %}
-    {% if obj.admin_review %}
-    {% set ns.reviewed = true %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ name }}'s Objectives</h1>
+        <p class="page-sub">{{ "All assigned objectives" if mode == "See All" else "Objectives assigned to this member" }}</p>
+    </div>
+    {% if mode == "See All" %}
+    <a href="{{ url_for('admin.recipients') }}" class="btn btn-primary">+ Assign New</a>
+    {% else %}
+    <a href="{{ url_for('admin.add_objective', recipient_id=auth.id) }}" class="btn btn-primary">+ Add Objective</a>
     {% endif %}
-    {% endfor %}
+</div>
 
-    <a href="{{ url_for('admin.objectives_overview', objective_id=objs[0].id) }}" style="text-decoration:none;">
-        <div class="obj-card"
-         style="
-            background-color:white;
-            width:100%;
-            max-width:700px;
-            border:2px solid black;
-            border-radius:10px;
-            padding:20px;
-            margin:20px;
-            box-shadow:0 8px 20px rgba(0,0,0,0.3);
-            display:grid;
-            grid-template-columns:80% 20%;
-            overflow:hidden;
-            border-right: 10px solid {{ 'green' if ns.reviewed else 'none' }};">
-            <div style="overflow:hidden; text-overflow:ellipsis;">
-                {{ title }}
-            </div>
+{% if grouped_objectives %}
+<div class="obj-list">
+    {% if mode == "See Objective" %}
+    {% for title, objs in grouped_objectives.items() %}
+    {% set ns = namespace(reviewed=false) %}
+    {% for obj in objs %}{% if obj.admin_review %}{% set ns.reviewed = true %}{% endif %}{% endfor %}
+    <a href="{{ url_for('admin.objectives_overview', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
+        <div>
+            <div class="obj-card-title">{{ title }}</div>
+            <div class="obj-card-meta"><span>{{ objs|length }} objective{{ 's' if objs|length != 1 }}</span></div>
+        </div>
+        <div class="obj-card-right">
+            <span class="badge {{ 'badge-green' if ns.reviewed else 'badge-ash' }}">{{ 'Reviewed' if ns.reviewed else 'Pending' }}</span>
+            <span class="btn btn-sm btn-outline">View &rarr;</span>
         </div>
     </a>
-{% endfor %}
+    {% endfor %}
+    {% endif %}
 
-{% endif %}
-
-{% if mode == "See All" %}
-
-<a href="{{ url_for('admin.recipients') }}" class="obj-style">Add Objective</a>
-
-<h2>All Objectives</h2> 
+    {% if mode == "See All" %}
     {% for (title, employee_id), objs in grouped_objectives.items() %}
     {% set ns = namespace(reviewed=false) %}
-    {% for obj in objs %}
-    {% if obj.admin_review %}
-    {% set ns.reviewed = true %}
-    {% endif %}
-    {% endfor %}
-
-    <a href="{{ url_for('admin.objectives_overview', objective_id=objs[0].id) }}" style="text-decoration:none;">
-        <div class="obj-card"
-         style="
-            background-color:white;
-            width:100%;
-            max-width:700px;
-            border:2px solid black;
-            border-radius:10px;
-            padding:20px;
-            margin:20px;
-            box-shadow:0 8px 20px rgba(0,0,0,0.3);
-            display:grid;
-            grid-template-columns:80% 20%;
-            overflow:hidden;
-            border-right: 10px solid {{ 'green' if ns.reviewed else 'none' }};">
-            <div style="overflow:hidden; text-overflow:ellipsis;">
-                {{ title }}
+    {% for obj in objs %}{% if obj.admin_review %}{% set ns.reviewed = true %}{% endif %}{% endfor %}
+    <a href="{{ url_for('admin.objectives_overview', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
+        <div>
+            <div class="obj-card-title">{{ title }}</div>
+            <div class="obj-card-meta">
+                <span>{{ objs|length }} objective{{ 's' if objs|length != 1 }}</span>
+                <span>Assigned to: <strong>{{ objs[0].assigned_to.name }}</strong></span>
             </div>
-            <div style="color:green; padding-left:20px;">
-                Assigned to: {{ objs[0].assigned_to.name }}
-            </div>
+        </div>
+        <div class="obj-card-right">
+            <span class="badge {{ 'badge-green' if ns.reviewed else 'badge-ash' }}">{{ 'Reviewed' if ns.reviewed else 'Pending' }}</span>
+            <span class="btn btn-sm btn-outline">View &rarr;</span>
         </div>
     </a>
     {% endfor %}
-    
+    {% endif %}
+</div>
+{% else %}
+<div class="empty-state">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <h3>No objectives yet</h3>
+    <p>Assign objectives to this member to get started.</p>
+</div>
 {% endif %}
-
 {% endblock %}

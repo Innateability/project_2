@@ -1,13 +1,24 @@
 {% extends "base.html" %}
-{% set page_title = "DELETE ACCOUNT" %}
-
+{% set page_title = "Delete Account" %}
 {% block content %}
-<h2>Delete {{ state|capitalize }} Account</h2>
-
-<form method="POST">
-    <label>Confirm Password</label>
-    <input type="password" name="password" required>
-
-    <button type="submit">Delete Account</button>
-</form>
+<div style="max-width:480px;margin:40px auto">
+    <div class="card">
+        <div class="card-header"><span class="card-title text-red">Delete Account</span></div>
+        <div class="card-body">
+            <p class="text-muted mb-4">This action is permanent. All your data will be removed and cannot be recovered.</p>
+            <div class="delete-zone">
+                <h3>Are you sure?</h3>
+                <p>Once deleted, your account cannot be recovered.</p>
+                <div style="display:flex;gap:10px;justify-content:center">
+                    <form method="POST">
+                        <button type="submit" class="btn btn-danger">Yes, Delete My Account</button>
+                    </form>
+                    {% if state == 'admin' %}<a href="{{ url_for('admin.home') }}" class="btn btn-outline">Cancel</a>
+                    {% elif state == 'team_leader' %}<a href="{{ url_for('team_leader.home') }}" class="btn btn-outline">Cancel</a>
+                    {% else %}<a href="{{ url_for('employee.home') }}" class="btn btn-outline">Cancel</a>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

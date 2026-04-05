@@ -434,4 +434,3 @@ def edit_feedback(objective_id):
         feedback=feedback_text,
         role="team_leader"
     )
-
