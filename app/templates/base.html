@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <title>{{ page_title }} | Tekafriq Objective Platform</title>
+    <title>{{ page_title }} | Performance Appraisal Platform</title>
 </head>
 <body>
 
@@ -13,7 +13,9 @@
     <aside class="sidebar">
         <div class="sidebar-brand">
             <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Logo" class="sidebar-logo">
-            <span class="sidebar-title">Tekafriq Objective Platform</span>
+        </div>
+        <div class="sidebar-brand">
+            <span class="sidebar-title">Performance Appraisal Platform</span>
         </div>
         <div class="sidebar-role">
             {% if state == 'admin' %}Administrator

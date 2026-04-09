@@ -10,9 +10,9 @@
                 <h3>Are you sure?</h3>
                 <p>Once deleted, your account cannot be recovered.</p>
                 <div style="display:flex;gap:10px;justify-content:center">
-                    <form method="POST">
+                    <!-- <form method="POST">
                         <button type="submit" class="btn btn-danger">Yes, Delete My Account</button>
-                    </form>
+                    </form> -->
                     {% if state == 'admin' %}<a href="{{ url_for('admin.home') }}" class="btn btn-outline">Cancel</a>
                     {% elif state == 'team_leader' %}<a href="{{ url_for('team_leader.home') }}" class="btn btn-outline">Cancel</a>
                     {% else %}<a href="{{ url_for('employee.home') }}" class="btn btn-outline">Cancel</a>{% endif %}

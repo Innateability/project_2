@@ -34,16 +34,4 @@
     </div>
     {% endif %}
 </div>
-<div class="card">
-    <div class="card-header"><span class="card-title">Account</span></div>
-    <div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap">
-        {% if state == 'admin' %}
-        <a href="{{ url_for('admin.delete_account') }}" class="btn btn-outline text-red" style="border-color:#f5c6c2">Delete Account</a>
-        {% elif state == 'team_leader' %}
-        <a href="{{ url_for('team_leader.delete_account') }}" class="btn btn-outline text-red" style="border-color:#f5c6c2">Delete Account</a>
-        {% else %}
-        <a href="{{ url_for('employee.delete_account') }}" class="btn btn-outline text-red" style="border-color:#f5c6c2">Delete Account</a>
-        {% endif %}
-    </div>
-</div>
 {% endblock %}
