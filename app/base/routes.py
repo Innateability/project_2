@@ -103,6 +103,7 @@ def signup():
         username = request.form.get("username")
         password = request.form.get("password")
         email = request.form.get("email")
+        entered_entry_code = request.form.get("entry_code")
         entry_code = os.getenv("ENTRY_CODE")
 
         
@@ -114,7 +115,7 @@ def signup():
             flash("Server configuration error", "error")
             return redirect(url_for("base.signup"))
 
-        if entry_code != entry_code:
+        if entry_code != entered_entry_code:
             flash("Incorrect entry code", "error")
             return redirect(url_for("base.signup"))
 
@@ -154,7 +155,6 @@ def signup():
             department_name = employee_info.department
             department = Department.query.filter_by(name=department_name).first()
             if not department:
-                print("yes")
                 department = Department(name=department_name)
                 db.session.add(department)
 
@@ -170,7 +170,6 @@ def signup():
         elif role == "employee":
             department_name = employee_info.department
             department = Department.query.filter_by(name=department_name).first()
-            print(47)
             if not department:
                 department = Department(name=department_name)
                 db.session.add(department)

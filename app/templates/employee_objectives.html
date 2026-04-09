@@ -11,7 +11,7 @@
     {% for (title, batch_id), objs in grouped_objectives.items() %}
     {% set ns = namespace(reviewed=false) %}
     {% for obj in objs %}{% if obj.review %}{% set ns.reviewed = true %}{% endif %}{% endfor %}
-    <a href="{{ url_for('employee.objectives_overview', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
+    <a href="{{ url_for('employee.objectives_overview', mode='t', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
         <div>
             <div class="obj-card-title">{{ title }}</div>
             <div class="obj-card-meta">
@@ -34,7 +34,7 @@
     {% for (title, batch_id), objs in admin_grouped_objectives.items() %}
     {% set ns = namespace(reviewed=false) %}
     {% for obj in objs %}{% if obj.admin_review %}{% set ns.reviewed = true %}{% endif %}{% endfor %}
-    <a href="{{ url_for('employee.objectives_overview', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
+    <a href="{{ url_for('employee.objectives_overview', mode='a', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
         <div>
             <div class="obj-card-title">{{ title }}</div>
             <div class="obj-card-meta">

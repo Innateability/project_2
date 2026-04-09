@@ -12,7 +12,8 @@ employee_bp = Blueprint("employee",__name__,url_prefix="/employee")
 @employee_required
 def home():
     auth_name = Authentication.query.get(session["user_id"]).name
-    return render_template("home.html",state="employee",role="employee",auth_name=auth_name)
+    auth = Authentication.query.get(session.get("user_id"))
+    return render_template("home.html",state="employee",role="employee",auth_name=auth_name,auth=auth)
 
 @employee_bp.route("/logout",methods=["POST","GET"])
 @login_required
@@ -22,8 +23,10 @@ def logout():
         session.pop("role",None)
         session.pop("user_id",None)
         session.pop("email",None)
-        return redirect(url_for("base.login"))
-    return render_template("logout.html",state="employee",role="employee")
+        auth = Authentication.query.get(session.get("user_id"))
+        return redirect(url_for("base.login",auth=auth))
+    auth = Authentication.query.get(session.get("user_id"))
+    return render_template("logout.html",state="employee",role="employee",auth=auth)
 
 @employee_bp.route("/delete_account",methods=["POST","GET"])
 @login_required
@@ -43,14 +46,16 @@ def delete_account():
             return redirect(url_for("base.signup"))
         session.clear()
         flash("account deleted succesfully","success")
-        return redirect(url_for("base.login"))
-    return render_template("delete_account.html",state="employee",role="employee")
+        auth = Authentication.query.get(session.get("user_id"))
+        return redirect(url_for("base.login",auth=auth,role="employee"))
+    auth = Authentication.query.get(session.get("user_id"))
+    return render_template("delete_account.html",state="employee",role="employee",auth=auth)
 
 @employee_bp.route("/objectives")
 @login_required
 @employee_required
 def objectives():
-    auth = Authentication.query.get(session["user_id"])
+    auth = Authentication.query.get(session.get("user_id"))
     grouped = defaultdict(list)
     admin_grouped = defaultdict(list)
 
@@ -61,13 +66,14 @@ def objectives():
     for admin_obj in auth.admin_objectives:
         key = (admin_obj.admin_batch.title, admin_obj.admin_batch.id)
         admin_grouped[key].append(admin_obj)
-
+    auth = Authentication.query.get(session.get("user_id"))
     return render_template(
         "employee_objectives.html",
         grouped_objectives=grouped,
         admin_grouped_objectives=admin_grouped,
         role="employee",
-        state="employee"
+        state="employee",
+        auth=auth
     )
 
 @employee_bp.route("/feedback/<int:objective_id>/<role>", methods=["GET", "POST"])
@@ -105,21 +111,23 @@ def feedback(objective_id, role):
         setattr(review, feedback_attr, fb)
 
         db.session.commit()
-
+        auth = Authentication.query.get(session.get("user_id"))
         return redirect(
             url_for(
                 "employee.objective_overview",
                 objective_id=objective.id,
-                assigned_by_id=objective.assigned_by.id
+                assigned_by_id=objective.assigned_by.authentication.id,
+                auth=auth
             )
         )
-
+    auth = Authentication.query.get(session.get("user_id"))
     return render_template(
         "employee_feedback.html",
         objective=objective,
         role="employee",
         state="employee",
-        Title="Feedback"
+        Title="Feedback",
+        auth=auth
     )
 
 @employee_bp.route("/edit_feedback/<int:objective_id>/<role>", methods=["GET", "POST"])
@@ -137,12 +145,14 @@ def edit_feedback(objective_id, role):
 
         if objective.assigned_to.id != session["user_id"]:
             flash("Unauthorized", "error")
-            return redirect(url_for("employee.objectives"))
+            auth = Authentication.query.get(session.get("user_id")) 
+            return redirect(url_for("employee.objectives",auth=auth,role="employee"))
 
         review = objective.review
         if not review:
             flash("No review yet", "error")
-            return redirect(url_for("employee.objectives"))
+            auth = Authentication.query.get(session.get("user_id"))
+            return redirect(url_for("employee.objectives",auth=auth,role="employee"))
 
         feedback_text = (
             review.feedback.feedback
@@ -156,12 +166,14 @@ def edit_feedback(objective_id, role):
 
         if objective.assigned_to.id != session["user_id"]:
             flash("Unauthorized", "error")
-            return redirect(url_for("employee.objectives"))
+            auth = Authentication.query.get(session.get("user_id"))
+            return redirect(url_for("employee.objectives",auth=auth,role="employee"))
 
         admin_review = objective.admin_review
         if not admin_review:
             flash("No review yet", "error")
-            return redirect(url_for("employee.objectives"))
+            auth = Authentication.query.get(session.get("user_id"))
+            return redirect(url_for("employee.objectives",auth=auth,role="employee"))
 
         feedback_text = (
             admin_review.employee_feedback.feedback
@@ -178,7 +190,8 @@ def edit_feedback(objective_id, role):
 
         if not feedback_text:
             flash("Feedback is required", "error")
-            return redirect(request.url)
+            auth = Authentication.query.get(session.get("user_id"))
+            return redirect(request.url,auth=auth,role="employee")
 
         if role == "admin":
             if not admin_review.employee_feedback:
@@ -197,12 +210,11 @@ def edit_feedback(objective_id, role):
                 review.feedback.feedback = feedback_text
 
         db.session.commit()
-
+        auth = Authentication.query.get(session.get("user_id"))
         return redirect(
-            url_for("employee.objectives_overview", objective_id=objective.id)
+            url_for("employee.objectives_overview", objective_id=objective.id,auth=auth,role="employee")
         )
-
-   
+    auth = Authentication.query.get(session.get("user_id"))   
     return render_template(
         "employee_feedback.html",
         objective=objective,
@@ -210,6 +222,7 @@ def edit_feedback(objective_id, role):
         role="employee",
         state="employee",
         Title="Edit Feedback",
+        auth=auth
     )
 
 
@@ -224,7 +237,8 @@ def objectives_overview(objective_id):
         employee = objective.assigned_to
         if employee.id != session["user_id"]:
             flash("Unauthorized access", "error")
-            return redirect(url_for("employee.objectives"))
+            auth = Authentication.query.get(session.get("user_id"))
+            return redirect(url_for("employee.objectives",auth=auth,role="employee"))
         objectives = Objective.query.filter_by(batch_id=batch.id,assigned_to_id=employee.id).all()
         total_weighted = 0
         for obj in objectives:
@@ -235,7 +249,8 @@ def objectives_overview(objective_id):
         employee = admin_objective.assigned_to
         if employee.id != session["user_id"]:
             flash("Unauthorized access", "error")
-            return redirect(url_for("employee.objectives"))
+            auth = Authentication.query.get(session.get("user_id"))
+            return redirect(url_for("employee.objectives",auth=auth,role="employee"))
         
         objectives = AdminObjective.query.filter_by(admin_batch_id=batch.id,assigned_to_id=employee.id).all()
         total_weighted = 0
@@ -243,7 +258,7 @@ def objectives_overview(objective_id):
             if obj.admin_review: 
                 total_weighted += obj.admin_review.weighted_score
 
-
+    auth = Authentication.query.get(session.get("user_id"))
     return render_template(
         "employee_objectives_overview.html",
         batch=batch,
@@ -251,7 +266,8 @@ def objectives_overview(objective_id):
         objectives=objectives,
         total_weighted=total_weighted,
         role="employee",
-        state="employee"
+        state="employee",
+        auth=auth
     )
 
 @employee_bp.route("/objective_overview/<int:objective_id>/<int:assigned_by_id>",methods=["GET"])
@@ -259,26 +275,19 @@ def objectives_overview(objective_id):
 @employee_required
 def objective_overview(objective_id, assigned_by_id):
     assigned_by = Authentication.query.get(assigned_by_id)
-    print(assigned_by)
     if assigned_by.role == "team_leader":
-        print(1)
         objective = Objective.query.get(objective_id)
-        print(objective)
         batch = objective.batch
-        print(batch)
         title = batch.title
         year = batch.year
         employee = objective.assigned_to.name
     elif assigned_by.role == "admin":
-        print(2)
         objective = AdminObjective.query.get(objective_id)
-        print(objective)
         batch = objective.admin_batch
-        print(batch)
         title = batch.title
         year = batch.year
         employee = objective.assigned_to.name
-    print(year,title,employee,objective)
+    auth = Authentication.query.get(session.get("user_id"))
     return render_template(
         "employee_objective_overview.html",
         year=year,
@@ -286,4 +295,5 @@ def objective_overview(objective_id, assigned_by_id):
         employee=employee,
         role="employee",
         state="employee",
-        objective=objective)
+        objective=objective,
+        auth=auth)

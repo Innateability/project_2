@@ -5,7 +5,7 @@
     <div class="card">
         <div class="card-header"><span class="card-title text-red">Confirm Deletion</span></div>
         <div class="card-body">
-            <p class="mb-3"><strong>Objective:</strong> {{ objective.objective }}</p>
+            <p class="mb-3"><strong>Title:</strong> {{ objective.admin_batch.title if objective.admin_batch else objective.batch.title }}</p>
             <p class="mb-4"><strong>Assigned to:</strong> {{ objective.assigned_to.name }}</p>
             <div class="delete-zone">
                 <h3>This cannot be undone</h3>

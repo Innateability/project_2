@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <title>{{ page_title }} | OKR Platform</title>
+    <title>{{ page_title }} | Tekafriq Objective Platform</title>
 </head>
 <body>
 
@@ -13,7 +13,7 @@
     <aside class="sidebar">
         <div class="sidebar-brand">
             <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Logo" class="sidebar-logo">
-            <span class="sidebar-title">OKR Platform</span>
+            <span class="sidebar-title">Tekafriq Objective Platform</span>
         </div>
         <div class="sidebar-role">
             {% if state == 'admin' %}Administrator
@@ -42,6 +42,10 @@
                 <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 Logout
             </a>
+            <a href="{{ url_for('admin.objectives',auth_id=auth.id) }}" class="nav-item">
+                <svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+                Objectives
+            </a>
             {% elif state == 'team_leader' %}
             <a href="{{ url_for('team_leader.home') }}" class="nav-item {% if request.endpoint == 'team_leader.home' %}active{% endif %}">
                 <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -54,6 +58,10 @@
             <a href="{{ url_for('team_leader.received_objectives') }}" class="nav-item">
                 <svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
                 Received Objectives
+            </a>
+            <a href="{{ url_for('team_leader.objectives',auth_id=auth.id) }}" class="nav-item">
+                <svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+                Assigned Objectives
             </a>
             <a href="{{ url_for('team_leader.select_member') }}" class="nav-item">
                 <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -68,7 +76,7 @@
                 <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                 Dashboard
             </a>
-            <a href="{{ url_for('employee.objectives') }}" class="nav-item {% if request.endpoint == 'employee.objectives' %}active{% endif %}">
+            <a href="{{ url_for('employee.objectives',auth_id=auth.id) }}" class="nav-item {% if request.endpoint == 'employee.objectives' %}active{% endif %}">
                 <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 My Objectives
             </a>

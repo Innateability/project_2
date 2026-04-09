@@ -12,12 +12,12 @@
     {% for title, objs in grouped_objectives.items() %}
     {% set ns = namespace(reviewed=false) %}
     {% for obj in objs %}{% if obj.review %}{% set ns.reviewed = true %}{% endif %}{% endfor %}
-    <a href="{{ url_for('team_leader.objectives_overview', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
+    {% for obj in objs %}
+    <a href="{{ url_for('team_leader.objectives_overview', mode='t', objective_id=obj.id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
         <div>
             <div class="obj-card-title">{{ title }}</div>
             <div class="obj-card-meta">
-                <span>{{ objs|length }} objective{{ 's' if objs|length != 1 }}</span>
-                <span>Assigned to: <strong>{{ objs[0].assigned_to.name }}</strong></span>
+                <span>Assigned to: <strong>{{ obj.assigned_to.name }}</strong></span>
             </div>
         </div>
         <div class="obj-card-right">
@@ -30,6 +30,7 @@
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         <h3>No objectives assigned yet</h3>
     </div>
+    {% endfor %}
     {% endfor %}
 </div>
 {% endblock %}

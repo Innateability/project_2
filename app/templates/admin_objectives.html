@@ -19,10 +19,9 @@
     {% for title, objs in grouped_objectives.items() %}
     {% set ns = namespace(reviewed=false) %}
     {% for obj in objs %}{% if obj.admin_review %}{% set ns.reviewed = true %}{% endif %}{% endfor %}
-    <a href="{{ url_for('admin.objectives_overview', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
+    <a href="{{ url_for('admin.objectives_overview', mode='a', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
         <div>
             <div class="obj-card-title">{{ title }}</div>
-            <div class="obj-card-meta"><span>{{ objs|length }} objective{{ 's' if objs|length != 1 }}</span></div>
         </div>
         <div class="obj-card-right">
             <span class="badge {{ 'badge-green' if ns.reviewed else 'badge-ash' }}">{{ 'Reviewed' if ns.reviewed else 'Pending' }}</span>
@@ -36,11 +35,10 @@
     {% for (title, employee_id), objs in grouped_objectives.items() %}
     {% set ns = namespace(reviewed=false) %}
     {% for obj in objs %}{% if obj.admin_review %}{% set ns.reviewed = true %}{% endif %}{% endfor %}
-    <a href="{{ url_for('admin.objectives_overview', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
+    <a href="{{ url_for('admin.objectives_overview', mode='a', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
         <div>
             <div class="obj-card-title">{{ title }}</div>
             <div class="obj-card-meta">
-                <span>{{ objs|length }} objective{{ 's' if objs|length != 1 }}</span>
                 <span>Assigned to: <strong>{{ objs[0].assigned_to.name }}</strong></span>
             </div>
         </div>

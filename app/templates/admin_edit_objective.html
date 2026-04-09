@@ -11,7 +11,7 @@
     <div class="card">
         <div class="card-header"><span class="card-title">{{ objective.admin_batch.title }}</span></div>
         <div class="card-body">
-            <form method="POST" action="{{ url_for('admin.edit_objective', objective_id=objective.id) }}">
+            <form method="POST" action="{{ url_for('admin.edit_objective' if role=='admin' else 'team_leader.edit_objective' if role=='team_leader' else 'employee.edit_objective', objective_id=objective.id) }}">
                 <div class="form-row">
                     <div class="form-group">
                         <label>Batch Title</label>

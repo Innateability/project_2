@@ -12,7 +12,8 @@ team_leader_bp = Blueprint("team_leader",__name__,url_prefix="/Team-Leader")
 @team_leader_required
 def home():
     auth_name = Authentication.query.get(session["user_id"]).name
-    return render_template("home.html",state="team_leader",role="team_leader",auth_name=auth_name)
+    auth = Authentication.query.get(session.get("user_id"))
+    return render_template("home.html",state="team_leader",role="team_leader",auth_name=auth_name,auth=auth)
 
 @team_leader_bp.route("/logout",methods=["POST","GET"])
 @login_required
@@ -21,8 +22,11 @@ def logout():
     if request.method == "POST":
         session.pop("role",None)
         session.pop("user_id",None)
-        return redirect(url_for("base.login"))
-    return render_template("logout.html",state="team_leader",role="team_leader")
+        user_id = session.get("user_id")
+        auth = Authentication.query.get(user_id)
+        return redirect(url_for("base.login",auth=auth))
+    auth = Authentication.query.get(session.get("user_id"))
+    return render_template("logout.html",role="team_leader",state="team_leader",auth=auth)
 
 @team_leader_bp.route("/delete_account",methods=["POST","GET"])
 @login_required
@@ -41,31 +45,32 @@ def delete_account():
             db.session.rollback()
             return redirect(url_for("base.signup"))
         flash("account deleted succesfully","success")
-        return redirect(url_for("base.login"))
-    return render_template("delete_account.html",state="team_leader",role="team_leader")
+        auth = Authentication.query.get(session.get("user_id"))
+        return redirect(url_for("base.login",auth=auth))
+    auth = Authentication.query.get(session.get("user_id"))
+    return render_template("delete_account.html",state="team_leader",role="team_leader",auth=auth)
 
 @team_leader_bp.route("/add_recipients")
 @login_required
 @team_leader_required
 def recipients():
-    current_auth = Authentication.query.get(session["user_id"])
+    current_auth = Authentication.query.get(session.get("user_id"))
     current_employee = current_auth.team_leader
     department_id = current_employee.department_id
     names_auth = Authentication.query.join(Employee).filter(Employee.department_id == department_id,Authentication.id != current_auth.id).order_by(Authentication.name.asc()).all()
-    print(names_auth)
-    return render_template("team_leader_recipients.html",names_auth=names_auth)
+    auth = Authentication.query.get(session.get("user_id"))
+    return render_template("team_leader_recipients.html",names_auth=names_auth,state="team_leader",auth=auth,role="team_leader")
 
 @team_leader_bp.route("/select_member")
 @login_required
 @team_leader_required
 def select_member():
     current_user_id = session["user_id"]
-    print(current_user_id)
+    auth_id = Authentication.query.get(current_user_id).id
     current_user_department_id = (Authentication.query.get(current_user_id).team_leader.department_id)
     names_auth = (Authentication.query.join(Authentication.employee).filter(Authentication.id != current_user_id,Employee.department_id == current_user_department_id).order_by(Authentication.name.asc()).all())
-
-    print(names_auth)
-    return render_template("team_leader_select_member.html",names_auth=names_auth,admin_id=current_user_id)
+    auth = Authentication.query.get(session.get("user_id"))
+    return render_template("team_leader_select_member.html",names_auth=names_auth,admin_id=current_user_id,state="team_leader",auth=auth,role="team_leader")
 
 
 @team_leader_bp.route("/add_objectives",methods=["POST","GET"])
@@ -79,9 +84,8 @@ def add_objective():
         
         recipient_ids = request.args.getlist("recipients[]")
         recipients = Authentication.query.filter(Authentication.id.in_(recipient_ids)).all()
-        print("yes")
-        print(recipients)
-        return render_template("team_leader_add_objective.html", recipients=recipients)
+        auth = Authentication.query.get(session.get("user_id"))
+        return render_template("team_leader_add_objective.html", recipients=recipients,state="team_leader",auth=auth,role="team_leader")
 
 
 
@@ -90,22 +94,18 @@ def add_objective():
         recipients = Authentication.query.filter(Authentication.id.in_(recipient_ids)).all()
         title = request.form.get("title")
         year = int(request.form.get("year"))
-        print(recipients)
         objectives = request.form.getlist("objectives[]")
         categories = request.form.getlist("categories[]")
         weights = request.form.getlist("weights[]")
-        score_ranges = request.form.getlist("score_ranges[]")
+        score_range = 5
 
-       
-
-       
         batch = ObjectiveBatch(title=title, year=year)
         db.session.add(batch)
-        db.session.flush()  # get batch.id
+        db.session.flush()  
 
        
-        for obj, cat, weight, score_range in zip(
-            objectives, categories, weights, score_ranges
+        for obj, cat, weight in zip(
+            objectives, categories, weights
         ):
             for recipient in recipients:
                 objective = Objective(
@@ -122,22 +122,8 @@ def add_objective():
 
         db.session.commit()
         flash("Objectives created successfully", "success")
-        return redirect(url_for("team_leader.objectives",auth_id=auth_id))
-
-    # ================= GET REQUEST =================
-
-    # employees = []
-
-    # if administrator:
-    #     for department in administrator.departments:
-    #         for emp in department.employees:
-    #             if emp.authentication:
-    #                 employees.append(emp.authentication)
-
-    # return render_template(
-    #     "team_leader_add_objective.html",
-    #     employees=employees,
-    #     state="team_leader",)
+        auth = Authentication.query.get(session.get("user_id"))
+        return redirect(url_for("team_leader.objectives",auth_id=auth_id,state="team_leader",auth=auth))
 
 @team_leader_bp.route("/edit_objectives/<int:objective_id>", methods=["POST", "GET"])
 @login_required
@@ -160,7 +146,6 @@ def edit_objective(objective_id):
         auth_id = obj.assigned_to_id
         if not batch:
             batch = ObjectiveBatch(title=title,year=year)
-        print(obj,year,category,weight,score_range,)
         obj.objective = objective_text
         obj.category = category
         obj.weight = weight
@@ -168,13 +153,15 @@ def edit_objective(objective_id):
         obj.batch = batch
         db.session.commit()
         flash(f"Objective {title} edited successfully", "success")
-        return redirect(url_for("team_leader.objectives",auth_id=auth_id))
+        auth = Authentication.query.get(session.get("user_id"))
+        return redirect(url_for("team_leader.objectives",auth_id=auth_id,auth=auth))
 
     department = department_head.department
     employees = department.employees
     objective = Objective.query.filter_by(id=objective_id).first()
     employee_names = [emp.authentication.name for emp in employees]
-    return render_template("team_leader_edit_objective.html",role="team_leader",state="team_leader",employee_names=employee_names,objective=objective,Title="EDIT OBJECTIVES")
+    auth = Authentication.query.get(session.get("user_id"))
+    return render_template("team_leader_edit_objective.html",role="team_leader",state="team_leader",employee_names=employee_names,objective=objective,Title="EDIT OBJECTIVES",auth=auth)
 
 @team_leader_bp.route("/received_objectives")
 @login_required
@@ -186,7 +173,9 @@ def received_objectives():
     for obj in received_objectives:
         key = obj.admin_batch.title
         team_leader_grouped[key].append(obj)
-    return render_template("team_leader_received_objectives.html",team_leader_grouped_objectives=team_leader_grouped,state='team_leader')
+    auth = Authentication.query.get(session.get("user_id"))
+    mode = "a"
+    return render_template("team_leader_received_objectives.html",team_leader_grouped_objectives=team_leader_grouped,state='team_leader',auth=auth,role="team_leader",mode=mode)
 
 
 @team_leader_bp.route("/objectives/<int:auth_id>")
@@ -194,42 +183,33 @@ def received_objectives():
 @team_leader_required
 def objectives(auth_id):
     auth = Authentication.query.get(auth_id)
-    print(auth)
     team_leader_auth =  Authentication.query.get(session.get("user_id")).team_leader
-    print(team_leader_auth)
-    # print(admin_auth)
     if auth.team_leader:
         mode = "See All"
-        # print(mode)
+        objectives = Objective.query.filter(
+            Objective.assigned_by_id == auth.team_leader.id
+            ).all()
         grouped = defaultdict(list)
-        print(grouped)
-        print(auth.id)
-        print(auth.admin_objectives)
-        objectives = Objective.query.filter(Objective.assigned_by_id == team_leader_auth.id).all()
+        grouped_by_title = defaultdict(list)
         for obj in objectives:
-            print(obj)
-            key = (obj.batch.title)
-            grouped[key].append(obj)
-            print(grouped)
+            key = (obj.batch,obj.assigned_by,obj.assigned_to)
+            if not grouped.get(key):
+                grouped[key].append(obj)
+        for group,obj in grouped.items():
+            for i in obj:
+                key = i.batch.title
+                grouped_by_title[key].append(i)
         username = auth.name
-        return render_template("team_leader_assigned_objectives.html",grouped_objectives=grouped,state='team_leader',name=username,mode=mode,auth=auth)
+        return render_template("team_leader_assigned_objectives.html",grouped_objectives=grouped_by_title,state='team_leader',name=username,mode=mode,auth=auth,role="team_leader")
     if auth.employee:
         mode = "See Objective"
-        print(mode)
         grouped = defaultdict(list)
-        print(auth.id)
-        print(auth.objectives)
         objectives = Objective.query.filter(Objective.assigned_by_id == team_leader_auth.id,Objective.assigned_to_id == auth.id).all()
-        print(objectives)
         for obj in objectives:
-            print(obj)
             key = (obj.batch.title)
             grouped[key].append(obj)
-        print(grouped)
         username = auth.name
-        print(username)
-        print(33333)
-        return render_template("team_leader_assigned_objectives.html",grouped_objectives=grouped,state='team_leader',name=username,mode=mode,auth=auth)
+        return render_template("team_leader_assigned_objectives.html",grouped_objectives=grouped,state='team_leader',name=username,mode=mode,auth=auth,role="team_leader")
 
 @team_leader_bp.route("/review/<int:objective_id>", methods=["POST", "GET"])
 @login_required
@@ -246,7 +226,8 @@ def review_objective(objective_id):
             score = int(score_raw)
         except ValueError:
             flash("Score must be a number", "error")
-            return redirect(request.url)
+            auth = Authentication.query.get(session.get("user_id"))
+            return redirect(request.url,auth=auth)
         weighted_score = (score * objective.weight) / objective.score_range
         r = Review(
             review=review_text,
@@ -256,8 +237,10 @@ def review_objective(objective_id):
         objective.review = r
         db.session.commit()
         flash("reviewed successfully","success")
-        return redirect(url_for("team_leader.objectives_overview", objective_id=objective.id))
-    return render_template("team_leader_review.html", objective=objective, role="team_leader", state="team_leader")
+        auth = Authentication.query.get(session.get("user_id"))
+        return redirect(url_for("team_leader.objectives_overview", objective_id=objective.id, auth=auth, mode=""))
+    auth = Authentication.query.get(session.get("user_id"))
+    return render_template("team_leader_review.html", objective=objective, role="team_leader", state="team_leader",auth=auth)
 
 @team_leader_bp.route("/edit_review/<int:objective_id>", methods=["POST", "GET"])
 @login_required
@@ -275,31 +258,26 @@ def edit_review(objective_id):
             score = int(score_raw)
         except ValueError:
             flash("Score must be a number", "error")
-            return redirect(request.url)
+            auth = Authentication.query.get(session.get("user_id"))
+            return redirect(request.url,auth=auth)
         weighted_score = (score * objective.weight) / objective.score_range
 
         review.review = review_text
         review.score = score
         review.weighted_score = weighted_score
         db.session.commit()
-        return redirect(url_for("team_leader.objectives_overview", objective_id=objective.id))
-    return render_template("team_leader_edit_review.html", objective=objective,review=review)
+        auth = Authentication.query.get(session.get("user_id"))
+        return redirect(url_for("team_leader.objectives_overview", objective_id=objective.id, auth=auth, mode=""))
+    auth = Authentication.query.get(session.get("user_id"))
+    return render_template("team_leader_edit_review.html", objective=objective,review=review,state="team_leader",auth=auth,role="team_leader")
 
 
-@team_leader_bp.route("/objectives_overview/<int:objective_id>")
+@team_leader_bp.route("/objectives_overview/<mode>/<int:objective_id>")
 @login_required
 @team_leader_required
-def objectives_overview(objective_id):
-    objective = Objective.query.get(objective_id)   
+def objectives_overview(mode,objective_id):
     total_weighted = 0
-    if objective:
-        employee = objective.assigned_to
-        batch = objective.batch
-        objectives = Objective.query.filter_by(batch_id=batch.id, assigned_to_id=employee.id).all()
-        for obj in objectives:
-            if obj.review:
-                total_weighted += obj.review.weighted_score
-    else:
+    if mode == "a":
         objective = AdminObjective.query.get(objective_id)
         employee = objective.assigned_to
         batch = objective.admin_batch
@@ -307,7 +285,17 @@ def objectives_overview(objective_id):
         for obj in objectives:
             if obj.admin_review:
                 total_weighted += obj.admin_review.weighted_score
-    return render_template("team_leader_objectives_overview.html",batch=batch,employee=employee,objectives=objectives,total_weighted=total_weighted,role="team_leader",state="team_leader",objective=objective)
+                auth = Authentication.query.get(session.get("user_id"))
+    else:
+        objective = Objective.query.get(objective_id)   
+        employee = objective.assigned_to
+        batch = objective.batch
+        objectives = Objective.query.filter_by(batch_id=batch.id, assigned_to_id=employee.id).all()
+        for obj in objectives:
+            if obj.review:
+                total_weighted += obj.review.weighted_score
+    auth = Authentication.query.get(session.get("user_id"))
+    return render_template("team_leader_objectives_overview.html",batch=batch,employee=employee,objectives=objectives,total_weighted=total_weighted,role="team_leader",state="team_leader",objective=objective,auth=auth)
 
 @team_leader_bp.route("/objective_overview/<int:objective_id>/<int:assigned_by_id>")
 @login_required
@@ -328,6 +316,7 @@ def objective_overview(objective_id, assigned_by_id):
     year = batch.year
     employee = objective.assigned_to.name
 
+    auth = Authentication.query.get(session.get("user_id"))
     return render_template(
         "team_leader_objective_overview.html",
         year=year,
@@ -335,7 +324,8 @@ def objective_overview(objective_id, assigned_by_id):
         objective=objective,
         employee=employee,
         role="team_leader",
-        state="team_leader"
+        state="team_leader",
+        auth = Authentication.query.get(session.get("user_id"))
     )
 
 
@@ -346,11 +336,9 @@ def delete_objective(objective_id,assigned_by_id):
     assigned_by_auth = Authentication.query.get(assigned_by_id)
     auth_id = assigned_by_auth.id
     if assigned_by_auth.role == "team_leader":
-        print("mine")
         assigned_by = assigned_by_auth.team_leader
         objective = Objective.query.get(objective_id)
     elif assigned_by_auth.role == "admin":
-        print("mines")
         assigned_by = assigned_by_auth.administrator
         objective = AdminObjective.query.get(objective_id)
     else:
@@ -359,8 +347,10 @@ def delete_objective(objective_id,assigned_by_id):
         db.session.delete(objective)
         db.session.commit()
         flash(f"Objective '{objective.objective}' deleted successfully", "success")
-        return redirect(url_for("team_leader.objectives",auth_id=auth_id))
-    return render_template("delete_objective.html", objective=objective, role="team_leader", state="team_leader")
+        auth = Authentication.query.get(session.get("user_id"))
+        return redirect(url_for("team_leader.objectives",auth_id=auth_id,auth=auth))
+    auth = Authentication.query.get(session.get("user_id"))
+    return render_template("delete_objective.html", objective=objective, role="team_leader", state="team_leader",auth=auth)
 
 @team_leader_bp.route("/feedback/<int:objective_id>", methods=["GET", "POST"])
 @login_required
@@ -378,15 +368,16 @@ def feedback(objective_id):
         fb = TeamLeaderFeedback(feedback=feedback_text)
         admin_objective.admin_review.team_leader_feedback = fb
         db.session.commit()
-
-        return redirect(url_for("team_leader.objective_overview", objective_id=admin_objective.id,assigned_by_id=admin_objective.assigned_by_id))
-
+        auth = Authentication.query.get(session.get("user_id"))
+        return redirect(url_for("team_leader.objective_overview", objective_id=admin_objective.id,assigned_by_id=admin_objective.assigned_by_id,auth=auth))
+    auth = Authentication.query.get(session.get("user_id"))
     return render_template(
         "team_leader_feedback.html",
         objective=admin_objective,
-        role="employee",
-        state="employee",
-        Title="Feedback"
+        role="team_leader",
+        state="team_leader",
+        Title="Feedback",
+        auth=auth
     )
 
 @team_leader_bp.route("/edit_feedback/<int:objective_id>", methods=["GET", "POST"])
@@ -399,18 +390,21 @@ def edit_feedback(objective_id):
     
     if objective.assigned_to.id != session["user_id"]:
         flash("Unauthorized", "error")
-        return redirect(url_for("team_leader.objectives",auth_id=auth_id))
+        auth = Authentication.query.get(session.get("user_id"))
+        return redirect(url_for("team_leader.objectives",auth_id=auth_id,auth=auth))
 
     admin_review = objective.admin_review
     if not admin_review:
         flash("No admin review yet", "error")
-        return redirect(url_for("team_leader.objectives",auth_id=auth_id))
+        auth = Authentication.query.get(session.get("user_id"))
+        return redirect(url_for("team_leader.objectives",auth_id=auth_id,auth=auth))
 
     if request.method == "POST":
         feedback_text = request.form.get("feedback")
         if not feedback_text:
             flash("Feedback is required", "error")
-            return redirect(request.url)
+            auth = Authentication.query.get(session.get("user_id"))
+            return redirect(request.url,auth=auth)
 
         if not admin_review.team_leader_feedback:
             admin_review.team_leader_feedback = TeamLeaderFeedback(
@@ -420,17 +414,20 @@ def edit_feedback(objective_id):
             admin_review.team_leader_feedback.feedback = feedback_text
 
         db.session.commit()
-        return redirect(url_for("team_leader.objective_overview", objective_id=objective.id,assigned_by_id=objective.assigned_by_id))
+        auth = Authentication.query.get(session.get("user_id"))
+        return redirect(url_for("team_leader.objective_overview", objective_id=objective.id,assigned_by_id=objective.assigned_by_id,auth=auth))
 
     feedback_text = (
         admin_review.team_leader_feedback.feedback
         if admin_review.team_leader_feedback
         else ""
     )
-
+    auth = Authentication.query.get(session.get("user_id"))
     return render_template(
         "team_leader_edit_feedback.html",
         objective=objective,
         feedback=feedback_text,
-        role="team_leader"
+        role="team_leader",
+        state="team_leader",
+        auth=auth
     )

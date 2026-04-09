@@ -57,9 +57,8 @@ function addObjective() {
         </div>
         <div class="obj-builder-grid">
             <div class="form-group" style="margin:0"><label>Objective</label><input type="text" name="objectives[]" placeholder="Describe the objective" required></div>
-            <div class="form-group" style="margin:0"><label>Category</label><input type="text" name="categories[]" placeholder="e.g. Sales" required></div>
+            <div class="form-group" style="margin:0"><label>Category</label><select name="categories[]" required><option value="">Select Category</option><option>Personal Development</option><option>Technical</option><option>Others</option></select></div>
             <div class="form-group" style="margin:0"><label>Weight (%)</label><input type="number" name="weights[]" placeholder="20" min="1" max="100" required onchange="updateTotal()"></div>
-            <div class="form-group" style="margin:0"><label>Score Range</label><input type="number" name="score_ranges[]" placeholder="100" min="1" required></div>
         </div>`;
     document.getElementById('objectives-container').appendChild(div);
 }

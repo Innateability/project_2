@@ -9,7 +9,7 @@
     {% for title, objs in team_leader_grouped_objectives.items() %}
     {% set ns = namespace(reviewed=false) %}
     {% for obj in objs %}{% if obj.admin_review %}{% set ns.reviewed = true %}{% endif %}{% endfor %}
-    <a href="{{ url_for('team_leader.objectives_overview', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
+    <a href="{{ url_for('team_leader.objectives_overview', mode=mode, objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if ns.reviewed }}">
         <div>
             <div class="obj-card-title">{{ title }}</div>
             <div class="obj-card-meta">

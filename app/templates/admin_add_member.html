@@ -8,6 +8,36 @@
     </div>
 </div>
 <div style="max-width:560px">
+
+    {% if confirm_replace %}
+    <div class="card mb-4" style="border:2px solid #f5c6c2">
+        <div class="card-header" style="background:var(--red-light)">
+            <span class="card-title text-red">Team Leader Already Exists</span>
+        </div>
+        <div class="card-body">
+            <p class="mb-3">
+                <strong>{{ existing_tl_email }}</strong> is already enrolled as the
+                Team Leader for <strong>{{ form_department }}</strong>.
+            </p>
+            <p class="text-muted mb-4">
+                If you continue, their role will be changed to <strong>Employee</strong>
+                and <strong>{{ form_email }}</strong> will become the new Team Leader.
+            </p>
+            <div style="display:flex;gap:10px">
+                <form method="POST">
+                    <input type="hidden" name="email" value="{{ form_email }}">
+                    <input type="hidden" name="role" value="{{ form_role }}">
+                    <input type="hidden" name="department" value="{{ form_department }}">
+                    <input type="hidden" name="replace" value="yes">
+                    <button type="submit" class="btn btn-danger">Yes, Replace Team Leader</button>
+                </form>
+                <a href="{{ url_for('admin.add_member') }}" class="btn btn-ghost">Cancel</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not confirm_replace %}
     <div class="card">
         <div class="card-header"><span class="card-title">Member Details</span></div>
         <div class="card-body">
@@ -43,5 +73,7 @@
             </form>
         </div>
     </div>
+    {% endif %}
+
 </div>
 {% endblock %}
