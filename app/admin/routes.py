@@ -33,8 +33,8 @@ def delete_account():
         authen = Authentication.query.get(session["user_id"])
         session.clear()
         if authen:
-        db.session.delete(authen.administrator)
-        db.session.delete(authen)
+            db.session.delete(authen.administrator)
+            db.session.delete(authen)
         try:
             db.session.commit()
         except IntegrityError as e:
