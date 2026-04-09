@@ -49,7 +49,7 @@ def admin_signup():
     if request.method == "POST":
         departments = [
         "HCM", "SCM", "Procurement", "Finance",
-        "Administration", "Business Development", "Technical"]
+        "Administration", "Business Development", "Technical", "Support"]
         username = request.form.get("username")
         password = request.form.get("password")
         email = request.form.get("email")
@@ -96,7 +96,7 @@ def admin_signup():
 def signup():
     departments = [
         "HCM", "SCM", "Procurement", "Finance",
-        "Administration", "Business Development", "Technical"
+        "Administration", "Business Development", "Technical", "Support"
     ]
 
     if request.method == "POST":
