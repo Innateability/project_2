@@ -1,0 +1,23 @@
+0,
+0,
+1,
+0,
+1,
+1,
+1,
+1,
+1,
+0,
+0,
+1,
+0.5,
+1,
+1,
+1,
+0,
+1,
+
+rules
+if there is a buy direction loss recovery order open(to recover a possible loss from the ) and then an actual buy order is placed , cncel the recovery order
+for all the value comparison for equal to , change them to either greater than or equal to ,or less than or equal to
+add sl buffer
