@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% set page_title = "Open Objectives" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ batch.title|title }}</h1>
+        <h1 class="page-title">{{ batch.year|title }}</h1>      
+        <p class="page-sub">Open objectives for this batch</p>
+    </div>
+</div>
+
+{% if open_objectives %}
+{% if state == 'admin' %}
+{% set endpoint = 'admin.open_objectives_overview' %}
+{% elif state == 'team_leader' %}
+{% set endpoint = 'team_leader.open_objectives_overview' %}
+{% else %}
+{% set endpoint = 'employee.open_objectives_overview' %}
+{% endif %}
+<div class="obj-list">
+    {% for obj, mode in open_objectives %}
+    {% set ns = namespace(reviewed=false) %}
+    {% for obj in objs %}{% if obj.admin_review %}{% set ns.reviewed = true %}{% endif %}{% endfor %}
+    <a href="{{ url_for( endpoint , mode=mode, objective_id=obj.id, batch_id=batch.id) }}" class="obj-card {{ 'reviewed' if batch.deadline < now }}">
+        <div>
+            <div class="obj-card-title">{{ batch.title }}</div>
+            <div class="obj-card-meta">
+                <span>Assigned to: <strong>{{ obj.assigned_to.name }}</strong></span>
+            </div>
+        </div>
+        <div class="obj-card-right">
+            <span class="badge {{ 'badge-green' if batch.deadline < now else 'badge-ash' }}">{{ 'Completed' if batch.deadline < now else 'In progress' }}</span>
+            <span class="btn btn-sm btn-outline">View &rarr;</span>
+        </div>
+    </a>
+{% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <h3>No open objectives yet</h3>
+</div>
+{% endif %}
+{% endblock %}

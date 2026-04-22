@@ -45,8 +45,8 @@ body { font-family: 'Inter', sans-serif; background: var(--ash); color: var(--te
 }
 
 .sidebar-logo {
-    height: 60px;
-    width: 100px;
+    height: 90px;
+    width: 180px;
     border-radius: 6px;
     object-fit: cover;
 }
@@ -58,7 +58,6 @@ body { font-family: 'Inter', sans-serif; background: var(--ash); color: var(--te
 }
 
 .sidebar-role {
-    font-size: 0.68rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.12em;
@@ -264,6 +263,27 @@ textarea { resize: vertical; min-height: 90px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .form-actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
 
+.message-background {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.84rem;
+    font-weight: 500;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+    background: var(--blue);
+    color: var(--white); 
+    border-color: var(--blue); 
+
+}
+
+
 .btn {
     display: inline-flex;
     align-items: center;
@@ -401,7 +421,52 @@ tbody tr:hover { background: #f8f9fc; }
     margin-bottom: 14px;
     font-size: 0.88rem;
 }
+.chat {
+  height: 300px;          
+  overflow-y: auto;       
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
 
+.message {
+  max-width: fit-content;
+  width: 500px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 16px;
+  word-wrap: break-word;
+}
+
+.sent {
+  background-color: #0078fe;
+  color: white;
+  align-self: flex-start;  
+}
+
+.received {
+  background-color: #e5e5ea;
+  color: black;
+  align-self: flex-end;
+}
+
+#input-area {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid #ccc;
+}
+
+#messageInput {
+  flex: 1;
+  padding: 8px;
+  border-radius: 18px;
+  border: 1px solid #ccc;
+  resize: none;        
+  overflow-y: auto;    
+  rows: 3             
+}
 .delete-zone {
     border: 2px dashed #f5c6c2;
     border-radius: var(--radius);

@@ -46,4 +46,50 @@
     </div>
 </div>
 {% endif %}
+<button id="toggleBtn" onclick="toggle()" class="btn btn-primary" style="margin-top: 30px; margin-bottom: 30px;">Open Messages</button>
+<div id="content" style="display:none">
+    <div class="card mb-4">
+        {% if messages %}
+        <div class="chat">
+            {% for message in messages %}
+            <div class="message {{ 'sent' if message.status == 'admin' else 'received' }}">{{ message.message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    <div id="input-area">
+        <form method="post">
+            <textarea id="messageInput" name="message" style="margin-top: 20px;" placeholder="Type a message..."></textarea>
+            <button type="submit" class="btn btn-primary" style="margin-top: 20px;">Send Message</button>
+        </form>
+    </div>
+    </div>
+</div>
+
+<script>
+  function toggle() {
+    const el = document.getElementById("content");
+    const btn = document.getElementById("toggleBtn");
+    if (el.style.display === "none") {
+        el.style.display = "block";
+        btn.innerText = "Close Messages";
+    } else {
+        el.style.display = "none";
+        btn.innerText = "Open Messages";
+    }
+    }
+    document.getElementById("messageInput").addEventListener("keydown", function(e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault(); 
+            sendMessage();
+        }
+        });
+    window.onload = function() {
+        setTimeout(function() {
+            const chat = document.getElementById("chat");
+            chat.scrollTop = chat.scrollHeight;
+        }, 100);
+        }
+</script>
+
 {% endblock %}

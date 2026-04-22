@@ -6,13 +6,16 @@
         <h1 class="page-title">{{ objective.objective }}</h1>
         <p class="page-sub">Assigned to {{ employee }} &mdash; {{ title }}, {{ year }}</p>
     </div>
+    <a href="{{ url_for('team_leader.edit_objective', objective_id=objective.id) }}" class="btn btn-outline">Edit Objective</a>
 </div>
 
-{% if objective.batch %}
-<a href="{{ url_for('team_leader.edit_objective', objective_id=objective.id) }}" class="btn btn-outline btn-sm mb-4">Edit Objective</a>
-{% endif %}
+<div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">Category</div><div style="font-weight:600;margin-top:4px">{{ objective.category }}</div></div>
+    <div class="stat-card"><div class="stat-label">Weight</div><div class="stat-value">{{ objective.weight }}%</div></div>
+    <div class="stat-card"><div class="stat-label">Max Score</div><div class="stat-value">{{ objective.score_range }}</div></div>
+</div>
 
-{% if objective.batch and not objective.review %}
+{% if mode == "t" and not objective.review %}
 <div class="card mb-3">
     <div class="card-body" style="text-align:center;padding:30px">
         <p class="text-muted mb-3">No review submitted yet.</p>
@@ -21,10 +24,10 @@
 </div>
 {% endif %}
 
-{% if objective.admin_batch and not objective.admin_review %}
+{% if mode == "a" and not objective.admin_review %}
 <div class="card mb-3">
-    <div class="card-body" style="padding:20px">
-        <p class="text-muted">No admin review yet.</p>
+    <div class="card-body" style="text-align:center;padding:30px">
+        <p class="text-muted mb-3">No review submitted yet.</p>
     </div>
 </div>
 {% endif %}
@@ -59,9 +62,51 @@
 {% endif %}
 {% endif %}
 
-{% if objective.batch %}
-<div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--ash-mid)">
-    <a href="{{ url_for('team_leader.delete_objective', objective_id=objective.id, assigned_by_id=objective.assigned_by.authentication.id) }}" class="btn btn-danger btn-sm">Delete Objective</a>
+<button id="toggleBtn" onclick="toggle()" class="btn btn-primary" style="margin-top: 30px; margin-bottom: 30px;">Open Messages</button>
+<div id="content" style="display:none">
+    <div class="card mb-4">
+        {% if messages %}
+        <div class="chat">
+            {% for message in messages %}
+            <div class="message {{ 'sent' if message.status == 'team_leader' else 'received' }}">{{ message.message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    <div id="input-area">
+        <form method="post">
+            <textarea id="messageInput" name="message" style="margin-top: 20px;" placeholder="Type a message..."></textarea>
+            <button type="submit" class="btn btn-primary" style="margin-top: 20px;">Send Message</button>
+        </form>
+    </div>
+    </div>
 </div>
-{% endif %}
+
+<script>
+  function toggle() {
+    const el = document.getElementById("content");
+    const btn = document.getElementById("toggleBtn");
+    if (el.style.display === "none") {
+        el.style.display = "block";
+        btn.innerText = "Close Messages";
+    } else {
+        el.style.display = "none";
+        btn.innerText = "Open Messages";
+    }
+    }
+    document.getElementById("messageInput").addEventListener("keydown", function(e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault(); 
+            sendMessage();
+        }
+        });
+    window.onload = function() {
+        setTimeout(function() {
+            const chat = document.getElementById(".chat");
+            chat.scrollTop = chat.scrollHeight;
+        }, 100);
+        }
+</script>
+
+
 {% endblock %}

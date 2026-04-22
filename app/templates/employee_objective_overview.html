@@ -8,7 +8,7 @@
     </div>
 </div>
 
-{% if objective.batch %}
+{% if objective.batch.objectives %}
 <div class="review-box mb-3">
     <strong class="text-small text-muted">Team Leader Review</strong>
     {% if objective.review %}
@@ -28,23 +28,50 @@
 {% endif %}
 {% endif %}
 
-{% if objective.admin_batch %}
-<div class="review-box mb-3">
-    <strong class="text-small text-muted">Admin Review</strong>
-    {% if objective.admin_review %}
-    <p style="margin:8px 0"><strong>Score:</strong> {{ objective.admin_review.score }} &nbsp;&nbsp; <strong>Review:</strong> {{ objective.admin_review.review }}</p>
-    {% else %}
-    <p class="text-muted" style="margin:8px 0">No review yet.</p>
-    {% endif %}
+<button id="toggleBtn" onclick="toggle()" class="btn btn-primary" style="margin-top: 30px; margin-bottom: 30px;">Open Messages</button>
+<div id="content" style="display:none">
+    <div class="card mb-4">
+        {% if messages %}
+        <div class="chat">
+            {% for message in messages %}
+            <div class="message {{ 'sent' if message.status == 'employee' else 'received' }} message-background">{{ message.message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    <div id="input-area">
+        <form method="post">
+            <textarea id="messageInput" name="message" style="margin-top: 20px;" placeholder="Type a message..."></textarea>
+            <button type="submit" class="btn btn-primary" style="margin-top: 20px;">Send Message</button>
+        </form>
+    </div>
+    </div>
 </div>
-{% if objective.admin_review and objective.admin_review.employee_feedback %}
-<div class="feedback-box mb-3">
-    <strong class="text-small text-muted">Your Feedback</strong><br><br>
-    {{ objective.admin_review.employee_feedback.feedback }}
-</div>
-<a href="{{ url_for('employee.edit_feedback', objective_id=objective.id, role='admin') }}" class="btn btn-outline btn-sm mb-3">Edit Feedback</a>
-{% elif objective.admin_review and not objective.admin_review.employee_feedback %}
-<a href="{{ url_for('employee.feedback', objective_id=objective.id, role='admin') }}" class="btn btn-primary btn-sm mb-3">Give Feedback</a>
-{% endif %}
-{% endif %}
+
+<script>
+  function toggle() {
+    const el = document.getElementById("content");
+    const btn = document.getElementById("toggleBtn");
+    if (el.style.display === "none") {
+        el.style.display = "block";
+        btn.innerText = "Close Messages";
+    } else {
+        el.style.display = "none";
+        btn.innerText = "Open Messages";
+    }
+    }
+    document.getElementById("messageInput").addEventListener("keydown", function(e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault(); 
+            sendMessage();
+        }
+        });
+    window.onload = function() {
+        setTimeout(function() {
+            const chat = document.getElementById("chat");
+            chat.scrollTop = chat.scrollHeight;
+        }, 100);
+        }
+</script>
+
 {% endblock %}

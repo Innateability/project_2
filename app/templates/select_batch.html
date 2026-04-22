@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% set page_title = "Objective Batches" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Select batch</h1>
+        <p class="page-sub">Generate reports for a specific batch</p>
+    </div>
+</div>
+<div class="obj-list">
+    {% if state == "admin" %}
+    {% set endpoints = "admin.reports" %}
+    {% elif state == "team_leader" %}
+    {% set endpoints = "team_leader.reports" %}
+    {% elif state == "employee" %}
+    {% set endpoints = "employee.reports" %}
+    {% endif %}
+    {% for batch in batches %}
+    <a href="{{ url_for(endpoints, auth_id=auth.id, batch_id=batch.id) }}" class="obj-card">
+        <div>
+            <div class="obj-card-title">{{ batch.title }}</div>
+            <div class="obj-card-meta">
+                <span>{{ batch.year }}</span>
+
+            </div>
+        </div>
+        <div class="obj-card-right">
+            <span class="btn btn-sm btn-outline">See Report &rarr;</span>
+        </div>
+    </a>
+    {% else %}
+    <div class="empty-state">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <h3>No batches found</h3>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

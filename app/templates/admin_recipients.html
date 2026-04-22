@@ -15,8 +15,13 @@
         </label>
     </div>
     <div class="card-body">
-        <form method="GET" action="{{ url_for('admin.add_objective') }}">
+        <form method="GET" action="{{ url_for('admin.add_objective',batch_id=batch_id) }}">
             <div class="recipient-grid">
+                {% if not names_auth %}
+                <div>
+                    All members have been assigned objectives for this batch
+                </div>
+                {% else %}
                 {% for auth in names_auth %}
                 <label class="recipient-card">
                     <input type="checkbox" name="recipients[]" value="{{ auth.id }}" class="rcb">
@@ -35,6 +40,7 @@
                 {% else %}
                 <p class="text-muted">No members found.</p>
                 {% endfor %}
+                {% endif %}
             </div>
             <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px">
                 <a href="{{ url_for('admin.home') }}" class="btn btn-ghost">Cancel</a>

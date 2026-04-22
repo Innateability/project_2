@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% set page_title = "Open Objective Overview" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ objective.objective }}</h1>
+        <p class="page-sub">Assigned to {{ objective.assigned_to.name }} &mdash; {{ objective.batch.title }}, {{ objective.batch.year }}</p>
+    </div>
+</div>
+{% if auth_reviewed %}  
+<div class="card mb-3">
+    <div class="card-body" style="text-align:center;padding:30px">
+        <p class="text-muted mb-3">Already Reviewed.</p>
+    </div>
+    <div class="review-box mb-3">
+        <strong class="text-small text-muted">Review</strong>
+        <p style="margin:8px 0"> &nbsp;&nbsp; <strong>Review:</strong> {{ objective.open_objectives_review.review }}</p>
+    </div>
+</div>
+{% else %}
+{% if state == "admin" %}
+{% set endpoint = "admin.review_open_objective" %}
+{% elif state == "employee" %}
+{% set endpoint = "employee.review_open_objective" %}
+{% else %}
+{% set endpoint = "team_leader.review_open_objective" %}
+{% endif %}
+<div class="card mb-3">
+    <div class="card-body" style="text-align:center;padding:30px">
+        <p class="text-muted mb-3">No review submitted yet.</p>
+        <a href="{{ url_for( endpoint, objective_id=objective.id, mode=mode) }}" class="btn btn-primary">Write Review</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

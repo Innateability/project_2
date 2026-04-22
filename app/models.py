@@ -45,6 +45,7 @@ class Authentication(db.Model):
     employee = db.relationship("Employee", back_populates="authentication", uselist=False)
     team_leader = db.relationship("TeamLeader", back_populates="authentication", uselist=False)
     administrator = db.relationship("Administrator", back_populates="authentication", uselist=False)
+    auth_reviewed = db.relationship("AuthReviewed", back_populates="authentication", uselist=False)
 
     objectives = db.relationship(
         "Objective",
@@ -109,12 +110,14 @@ class TeamLeader(db.Model):
         cascade="all, delete-orphan"
     )
 
+
+
 class AdminReview(db.Model):
     __tablename__ = "admin_reviews"
 
     id = db.Column(db.Integer, primary_key=True)
     review = db.Column(db.String(500), nullable=False)
-    score = db.Column(db.Integer, nullable=False)
+    score = db.Column(db.Float, nullable=False)
     weighted_score = db.Column(db.Float, nullable=False)
 
     admin_objective_id = db.Column(
@@ -162,20 +165,45 @@ class Administrator(db.Model):
         back_populates="assigned_by",
         cascade="all, delete-orphan"
     )
+class Messages(db.Model):
+    __tablename__ = "messages"
 
-class AdminObjectiveBatch(db.Model):
-    __tablename__ = "admin_objective_batches"
+    id = db.Column(db.Integer, primary_key=True)
+    message = db.Column(db.String, nullable=False)
+    status = db.Column(db.String, nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False)
+    objective_id = db.Column(
+        db.Integer,
+        db.ForeignKey("objectives.id", ondelete="CASCADE")
+    )
+    admin_objective_id = db.Column(
+        db.Integer,
+        db.ForeignKey("admin_objectives.id", ondelete="CASCADE")
+    )
+    objective = db.relationship("Objective",back_populates="messages")
+    admin_objective = db.relationship("AdminObjective",back_populates="messages")
+
+class ObjectiveBatch(db.Model):
+    __tablename__ = "objective_batches"
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     year = db.Column(db.Integer, nullable=False)
+    completed = db.Column(db.Boolean, nullable=False)
+    duration = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime)
+    deadline = db.Column(db.DateTime)
 
     admin_objectives = db.relationship(
         "AdminObjective",
-        back_populates="admin_batch",
+        back_populates="batch",
         cascade="all, delete-orphan"
     )
-
+    objectives = db.relationship(
+        "Objective",
+        back_populates="batch",
+        cascade="all, delete-orphan"
+    )
 
 class AdminObjective(db.Model):
     __tablename__ = "admin_objectives"
@@ -185,10 +213,11 @@ class AdminObjective(db.Model):
     category = db.Column(db.String, nullable=False)
     score_range = db.Column(db.Integer, nullable=False)
     weight = db.Column(db.Integer, nullable=False)
+    private = db.Column(db.Boolean, nullable=False)
 
-    admin_batch_id = db.Column(
+    batch_id = db.Column(
         db.Integer,
-        db.ForeignKey("admin_objective_batches.id", ondelete="CASCADE"),
+        db.ForeignKey("objective_batches.id", ondelete="CASCADE"),
         nullable=False
     )
 
@@ -204,7 +233,7 @@ class AdminObjective(db.Model):
         nullable=False
     )
 
-    admin_batch = db.relationship("AdminObjectiveBatch", back_populates="admin_objectives")
+    batch = db.relationship("ObjectiveBatch", back_populates="admin_objectives")
     assigned_by = db.relationship("Administrator", back_populates="admin_objectives")
     assigned_to = db.relationship("Authentication", back_populates="admin_objectives")
 
@@ -214,6 +243,36 @@ class AdminObjective(db.Model):
         uselist=False,
         cascade="all, delete-orphan"
     )
+    open_objectives_review = db.relationship(
+        "ReviewOpenObjective",
+        back_populates="admin_objective",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+    messages = db.relationship("Messages", back_populates="admin_objective")
+    auth_reviewed = db.relationship(
+        "AuthReviewed",
+        back_populates="admin_objective",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+
+class AuthReviewed(db.Model):
+    __tablename__ = "auth_reviewed"
+    id = db.Column(db.Integer, primary_key=True)
+    score = db.Column(db.Float, nullable=False)
+    auth_id = db.Column(
+        db.Integer, 
+        db.ForeignKey("authentications.id", ondelete="CASCADE"))
+    authentication = db.relationship("Authentication",back_populates="auth_reviewed")
+    objective_id = db.Column(
+        db.Integer,
+        db.ForeignKey("objectives.id", ondelete="CASCADE"))
+    objective = db.relationship("Objective", back_populates="auth_reviewed")
+    admin_objective_id = db.Column(
+        db.Integer,
+        db.ForeignKey("admin_objectives.id", ondelete="CASCADE"))
+    admin_objective = db.relationship("AdminObjective", back_populates="auth_reviewed")
 
 class AdminReviewFeedback(db.Model):
     __tablename__ = "admin_review_feedbacks"
@@ -232,20 +291,21 @@ class AdminReviewFeedback(db.Model):
         "AdminReview",
         back_populates="employee_feedback"
     )
+    
 
 
-class ObjectiveBatch(db.Model):
-    __tablename__ = "objective_batches"
+# class ObjectiveBatch(db.Model):
+#     __tablename__ = "objective_batches"
 
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    year = db.Column(db.Integer, nullable=False)
+#     id = db.Column(db.Integer, primary_key=True)
+#     title = db.Column(db.String(200), nullable=False)
+#     year = db.Column(db.Integer, nullable=False)z
 
-    objectives = db.relationship(
-        "Objective",
-        back_populates="batch",
-        cascade="all, delete-orphan"
-    )
+#     objectives = db.relationship(
+#         "Objective",
+#         back_populates="batch",
+#         cascade="all, delete-orphan"
+#     )
 
 
 
@@ -257,6 +317,7 @@ class Objective(db.Model):
     category = db.Column(db.String, nullable=False)
     score_range = db.Column(db.Integer, nullable=False)
     weight = db.Column(db.Integer, nullable=False)
+    private = db.Column(db.Boolean, nullable=False)
 
     assigned_by_id = db.Column(
         db.Integer,
@@ -286,6 +347,24 @@ class Objective(db.Model):
         uselist=False,
         cascade="all, delete-orphan"
     )
+    open_objectives_review = db.relationship(
+        "ReviewOpenObjective",
+        back_populates="objective",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+    messages = db.relationship(
+        "Messages",
+        uselist=False,
+        cascade="all, delete-orphan",
+        back_populates="objective"
+    )
+    auth_reviewed = db.relationship(
+        "AuthReviewed",
+        back_populates="objective",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
 
 
 class Review(db.Model):
@@ -293,7 +372,7 @@ class Review(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     review = db.Column(db.String(500), nullable=False)
-    score = db.Column(db.Integer, nullable=False)
+    score = db.Column(db.Float, nullable=False)
     weighted_score = db.Column(db.Float, nullable=False)
 
     objective_id = db.Column(
@@ -312,6 +391,33 @@ class Review(db.Model):
         cascade="all, delete-orphan"
     )
 
+class ReviewOpenObjective(db.Model):
+    __tablename__ = "reviewopenobjectives"
+
+    id = db.Column(db.Integer, primary_key=True)
+    review = db.Column(db.String(500), nullable=False)
+    score = db.Column(db.Float, nullable=False)
+    weighted_score = db.Column(db.Float, nullable=False)
+    number_reviews = db.Column(db.Integer, nullable=False)
+
+    objective_id = db.Column(
+        db.Integer,
+        db.ForeignKey("objectives.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=True
+    )
+
+    objective = db.relationship("Objective", back_populates="open_objectives_review")
+
+    admin_objective_id = db.Column(
+        db.Integer,
+        db.ForeignKey("admin_objectives.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=True
+    )
+
+    admin_objective = db.relationship("AdminObjective", back_populates="open_objectives_review")
+    
 
 class Feedback(db.Model):
     __tablename__ = "feedbacks"

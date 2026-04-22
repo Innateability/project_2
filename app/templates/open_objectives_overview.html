@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% set page_title = "Open Objectives Overview" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ batch.title }}</h1>
+        <p class="page-sub">{{ objective[0].assigned_to.name }}{{ " (Team Leader)" if objective[0].assigned_to.team_leader else "" }} &mdash; {{ batch.year }}</p>
+    </div>
+</div>
+<div class="card mb-4">
+    <div class="card-header"><span class="card-title">Performance Summary</span></div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>#</th><th>Objective</th><th>Category</th><th>Weight</th><th>Weighted Score</th></tr>
+            </thead>
+            <tbody>
+                {% if state == 'admin' %}
+                {% set endpoint = 'admin.open_objective_overview' %}
+                {% elif state == 'team_leader' %}
+                {% set endpoint = 'team_leader.open_objective_overview' %}
+                {% else %}
+                {% set endpoint = 'employee.open_objective_overview' %}
+                {% endif %}
+                {% for (obj,auth_reviewed),weighted_score in objectives.items() %}
+                <tr>
+                    {% if auth_reviewed %}
+                    <td>{{ loop.index }}</td>
+                    <td><a href="{{ url_for(endpoint, mode=mode, objective_id=obj.id, assigned_by_id=obj.assigned_by_id) }}" class="text-blue" style="text-decoration:none;font-weight:500">{{ obj.objective }}</a></td>
+                    <td>{{ obj.category }}</td>
+                    <td>{{ obj.weight }}%</td>
+                    <td>{{ "%.1f"|format(weighted_score) if obj.open_objectives_review else "—" }}</td>
+                {% else %}
+                    <td>{{ loop.index }}</td>
+                    <td><a href="{{ url_for(endpoint, mode=mode, objective_id=obj.id, assigned_by_id=obj.assigned_by_id) }}" class="text-blue" style="text-decoration:none;font-weight:500">{{ obj.objective }}</a></td>
+                    <td>{{ obj.category }}</td>
+                    <td>{{ obj.weight }}%</td>
+                    <td>{{ "—" }}</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+                <tr style="font-weight:600;background:var(--blue-light)">
+                    <td colspan="4" style="text-align:right;padding:12px 14px">Total Weighted Score</td>
+                    <td style="padding:12px 14px">{{ "%.1f"|format(total_weighted) }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<a href="{{ url_for('admin.delete_objective', objective_id=objective[0].id) }}" class="btn btn-danger">Delete Batch "{{ batch.title }}"</a><br>
+
+{% endblock %}

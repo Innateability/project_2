@@ -3,7 +3,7 @@
 {% block content %}
 <div class="welcome-banner">
     <div>
-        <h2>Welcome, {{ auth_name }}</h2>
+        <h2>Welcome, {{ auth_name|title }}</h2>
         <p>
             {% if state == 'admin' %}Manage objectives and review performance across the organisation.
             {% elif state == 'team_leader' %}Assign and review objectives for your team members.
@@ -13,9 +13,9 @@
     <div class="welcome-actions">
         {% if state == 'admin' %}
             <a href="{{ url_for('admin.add_member') }}" class="btn btn-white">+ Add Member</a>
-            <a href="{{ url_for('admin.recipients') }}" class="btn btn-white">Assign Objectives</a>
+            <a href="{{ url_for('admin.objective_batches') }}" class="btn btn-white">Assign Objectives</a>
         {% elif state == 'team_leader' %}
-            <a href="{{ url_for('team_leader.recipients') }}" class="btn btn-white">+ Assign Objectives</a>
+            <a href="{{ url_for('team_leader.objective_batches') }}" class="btn btn-white">+ Assign Objectives</a>
             <a href="{{ url_for('team_leader.received_objectives') }}" class="btn btn-white">View Received</a>
         {% else %}
             <a href="{{ url_for('employee.objectives') }}" class="btn btn-white">My Objectives</a>

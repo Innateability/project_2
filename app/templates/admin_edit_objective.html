@@ -9,17 +9,24 @@
 </div>
 <div style="max-width:660px">
     <div class="card">
-        <div class="card-header"><span class="card-title">{{ objective.admin_batch.title }}</span></div>
+        <div class="card-header"><span class="card-title">{{ objective.batch.title }}</span></div>
         <div class="card-body">
             <form method="POST" action="{{ url_for('admin.edit_objective' if role=='admin' else 'team_leader.edit_objective' if role=='team_leader' else 'employee.edit_objective', objective_id=objective.id) }}">
                 <div class="form-row">
                     <div class="form-group">
                         <label>Batch Title</label>
-                        <input type="text" name="title" value="{{ objective.admin_batch.title }}" required>
+                        <p>{{ batch.title|upper }}</p>
                     </div>
                     <div class="form-group">
                         <label>Year</label>
-                        <input type="number" name="year" value="{{ objective.admin_batch.year }}" required>
+                        <p>{{ batch.title|upper }}</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Created at</label>
+                        <p>{{ batch.created_at.strftime("%B %d, %Y %I:%M %p") }}</p>
+                    <div class="form-group">
+                        <label>Deadline</label>
+                        <p>{{ batch.deadline.strftime("%B %d, %Y %I:%M %p") }}</p>
                     </div>
                 </div>
                 <div class="form-group">
@@ -29,16 +36,12 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Category</label>
-                        <input type="text" name="category" value="{{ objective.category }}" required>
+                        <select name="category" required><option value="{{ objective.category }}">Select Category</option><option>Personal Development</option><option>Technical</option><option>Others</option></select></div>
                     </div>
                     <div class="form-group">
                         <label>Weight (%)</label>
                         <input type="number" name="weight" value="{{ objective.weight }}" id="w" required>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Score Range</label>
-                    <input type="number" name="score_range" value="{{ objective.score_range }}" id="sr" required>
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Save Changes</button>

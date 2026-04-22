@@ -19,11 +19,19 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Batch Title</label>
-                    <input type="text" name="title" placeholder="e.g. Q1 2025 Performance" required>
+                    <p>{{ batch.title|upper }}</p>
                 </div>
                 <div class="form-group">
                     <label>Year</label>
-                    <input type="number" name="year" placeholder="2025" min="2020" max="2099" required>
+                    <p>{{ batch.year }}</p>
+                </div>
+                <div class="form-group">
+                    <label>Created at</label>
+                    <p>{{ batch.created_at.strftime("%B %d, %Y %I:%M %p") }}</p>
+                </div>
+                <div class="form-group">
+                    <label>Deadline</label>
+                    <p>{{ batch.deadline.strftime("%B %d, %Y %I:%M %p") }}</p>
                 </div>
             </div>
         </div>
@@ -38,7 +46,7 @@
             <p class="text-small mt-2" style="color:var(--text-muted)">Total weight: <strong id="weightTotal">0</strong>% (must equal 100%)</p>
         </div>
         <div style="padding:14px 22px;border-top:1px solid var(--ash-mid);display:flex;justify-content:flex-end;gap:10px">
-            <a href="{{ url_for('admin.recipients') }}" class="btn btn-ghost">Cancel</a>
+            <a href="{{ url_for('admin.home') }}" class="btn btn-ghost">Cancel</a>
             <button type="submit" class="btn btn-primary">Save Objectives</button>
         </div>
     </div>
@@ -59,6 +67,7 @@ function addObjective() {
             <div class="form-group" style="margin:0"><label>Objective</label><input type="text" name="objectives[]" placeholder="Describe the objective" required></div>
             <div class="form-group" style="margin:0"><label>Category</label><select name="categories[]" required><option value="">Select Category</option><option>Personal Development</option><option>Technical</option><option>Others</option></select></div>
             <div class="form-group" style="margin:0"><label>Weight (%)</label><input type="number" name="weights[]" placeholder="20" min="1" max="100" required onchange="updateTotal()"></div>
+            <div class="form-group" style="margin:0"><label>Public</label><select name="public[]" required><option value="">Select</option><option>True</option><option>False</option>
         </div>`;
     document.getElementById('objectives-container').appendChild(div);
 }

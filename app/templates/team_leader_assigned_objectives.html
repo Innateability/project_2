@@ -3,12 +3,13 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">{{ name }}'s Objectives</h1>
+        <h1 class="page-title">{{ title|upper }}</h1>
         <p class="page-sub">{{ "All assigned" if mode == "See All" else "Assigned to this member" }}</p>
     </div>
-    <a href="{{ url_for('team_leader.recipients') }}" class="btn btn-primary">+ Assign Objective</a>
+    <a href="{{ url_for('team_leader.recipients',batch_id=batch.id) }}" class="btn btn-primary">+ Assign Objective</a>
 </div>
 <div class="obj-list">
+    {% if grouped_objectives %}
     {% for title, objs in grouped_objectives.items() %}
     {% set ns = namespace(reviewed=false) %}
     {% for obj in objs %}{% if obj.review %}{% set ns.reviewed = true %}{% endif %}{% endfor %}
@@ -32,5 +33,6 @@
     </div>
     {% endfor %}
     {% endfor %}
+    {% endif %}
 </div>
 {% endblock %}

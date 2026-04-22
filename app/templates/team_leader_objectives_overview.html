@@ -16,30 +16,41 @@
             </thead>
             <tbody>
                 {% for obj in objectives %}
+                {% if obj.private %}
+                {% set route = "team_leader.objective_overview" %}
+                {% else %}
+                {% set route = "team_leader.open_objective_overview" %}
+                {% endif %}
                 <tr>
                     <td>{{ loop.index }}</td>
                     <td>
                         {% if obj.batch %}
-                        <a href="{{ url_for('team_leader.objective_overview', objective_id=obj.id, assigned_by_id=obj.assigned_by.authentication.id) }}" class="text-blue" style="text-decoration:none;font-weight:500">{{ obj.objective }}</a>
-                        {% else %}
-                        <a href="{{ url_for('team_leader.objective_overview', objective_id=obj.id, assigned_by_id=obj.assigned_by_id) }}" class="text-blue" style="text-decoration:none;font-weight:500">{{ obj.objective }}</a>
+                        <a href="{{ url_for(route, objective_id=obj.id, assigned_by_id=obj.assigned_by.authentication.id,mode=mode) }}" class="text-blue" style="text-decoration:none;font-weight:500">{{ obj.objective }}</a>
                         {% endif %}
                     </td>
                     <td>{{ obj.category }}</td>
-                    {% if obj.admin_batch %}
+                    {% if obj.private %}
+                    {% if obj.admin_review %}
                     <td>{{ obj.admin_review.score if obj.admin_review else "—" }}</td>
                     <td>{{ obj.weight }}%</td>
                     <td>{{ "%.1f"|format(obj.admin_review.weighted_score) if obj.admin_review else "—" }}</td>
+
                     {% else %}
-                    <td>{{ obj.review.score if obj.review else "—" }}</td>
+                    <td>{{ "%.1f"|format(obj.review.score) if obj.review else "—" }}</td>
                     <td>{{ obj.weight }}%</td>
                     <td>{{ "%.1f"|format(obj.review.weighted_score) if obj.review else "—" }}</td>
+
+                    {% endif %}
+                    {% else %}
+                    <td>{{ "%.1f"|format(obj.open_objectives_review.score) if obj.open_objectives_review else "—"  }}</td>
+                    <td>{{ obj.weight }}%</td>
+                    <td>{{ "%.1f"|format(obj.open_objectives_review.weighted_score) if obj.open_objectives_review else "—" }}</td>
                     {% endif %}
                 </tr>
                 {% endfor %}
                 <tr style="font-weight:600;background:var(--blue-light)">
                     <td colspan="5" style="text-align:right;padding:12px 14px">Total Weighted Score</td>
-                    <td style="padding:12px 14px">{{ "%.1f"|format(total_weighted) }}</td>
+                    <td style="padding:12px 14px">{{ "%.1f"|format(final_total_weighted) }}</td>
                 </tr>
             </tbody>
         </table>

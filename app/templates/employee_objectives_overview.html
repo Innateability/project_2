@@ -18,7 +18,7 @@
                 {% for obj in objectives %}
                 <tr>
                     <td>{{ loop.index }}</td>
-                    {% if obj.admin_batch %}
+                    {% if obj.batch %}
                     <td><a href="{{ url_for('employee.objective_overview', objective_id=obj.id, assigned_by_id=obj.assigned_by.id) }}" class="text-blue" style="text-decoration:none;font-weight:500">{{ obj.objective }}</a></td>
                     <td>{{ obj.category }}</td>
                     <td>{{ obj.admin_review.score if obj.admin_review else "—" }}</td>

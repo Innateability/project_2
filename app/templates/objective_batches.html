@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% set page_title = "Objective Batches" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Select batch</h1>
+        <p class="page-sub">View objectives for a specific batch</p>
+    </div>
+    <a href="{{ url_for('admin.add_objective_batch') }}" class="btn btn-outline">Create New Batch</a>
+</div>
+{% if batches %}
+<div class="obj-list">
+    {% if state == "admin" %}
+    {% for batch in batches %}
+    <a href="{{ url_for('admin.objectives', auth_id=auth.id, batch_id=batch.id) }}" class="obj-card {{ 'reviewed' if batch.deadline < now }}">
+        <div>
+            <div class="obj-card-title">{{ batch.title }}</div>
+            <div class="obj-card-meta">
+                <span>{{ batch.year }}</span>
+
+            </div>
+        </div>
+        <div class="obj-card-right">
+            <span class="btn btn-sm btn-outline">View Objectives &rarr;</span>
+        </div>
+    </a>
+    {% endfor %}
+    {% elif state == "team_leader" %}
+    {% for batch in batches %}
+    <a href="{{ url_for('team_leader.objectives', auth_id=auth.id, batch_id=batch.id) }}" class="obj-card {{ 'reviewed' if batch.deadline < now }}">
+        <div>
+            <div class="obj-card-title">{{ batch.title }}</div>
+            <div class="obj-card-meta">
+                <span>{{ batch.year }}</span>
+
+            </div>
+        </div>
+        <div class="obj-card-right">
+            <span class="btn btn-sm btn-outline">View Objectives &rarr;</span>
+        </div>
+    </a>
+    {% endfor %}
+    {% elif state == "employee" %}
+    {% for batch in batches %}
+    <a href="{{ url_for('employee.objectives', auth_id=auth.id, batch_id=batch.id) }}" class="obj-card {{ 'reviewed' if batch.deadline < now }}">
+        <div>
+            <div class="obj-card-title">{{ batch.title }}</div>
+            <div class="obj-card-meta">
+                <span>{{ batch.year }}</span>
+
+            </div>
+        </div>
+        <div class="obj-card-right">
+            <span class="btn btn-sm btn-outline">View Objectives &rarr;</span>
+        </div>
+    </a>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <h3>No batches found</h3>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -10,7 +10,7 @@
 </div>
 <div class="obj-list">
     {% for auth in names_auth %}
-    <a href="{{ url_for('admin.objectives', auth_id=auth.id) }}" class="obj-card">
+    <a href="{{ url_for('admin.objectives', auth_id=auth.id, batch_id=batch.id) }}" class="obj-card">
         <div>
             <div class="obj-card-title">{{ auth.name }}</div>
             <div class="obj-card-meta">
