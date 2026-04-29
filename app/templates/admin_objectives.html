@@ -7,24 +7,41 @@
         <p class="page-sub">{{ "All assigned objectives" if mode == "See All" else "Objectives assigned to this member" }}</p>
     </div>
     {% if mode == "See All" %}
-    <a href="{{ url_for('admin.recipients',batch_id=batch_id) }}" class="btn btn-primary">+ Assign New</a>
+    <div>
+        <form method="POST" class="btn btn-primary" style="background: var(--ash);border: 0px none;">
+            {% if not active %}
+            <button type="submit" name="active" value="true" class="btn btn-primary">
+                Activate
+            </button>
+            {% else %}
+            <button type="submit" name="active" value="false" class="btn btn-outline">
+                Deactivate
+            </button>
+            {% endif %}
+        </form>
+        {% if active %}
+        <a href="{{ url_for('admin.recipients',batch_id=batch_id) }}" class="btn btn-primary">+ Assign New</a>
+        {% endif %}
+    </div>
+    
     {% else %}
     <a href="{{ url_for('admin.add_objective', recipient_id=auth.id, batch_id=batch_id) }}" class="btn btn-primary">+ Add Objective</a>
     {% endif %}
 </div>
-
+{% if now > batch.start %}
+{% if active %}
 {% if grouped_objectives %}
 <div class="obj-list">
     {% if mode == "See Objective" %}
     {% for title, objs in grouped_objectives.items() %}
     {% set ns = namespace(reviewed=false) %}
     {% for obj in objs %}{% if obj.admin_review %}{% set ns.reviewed = true %}{% endif %}{% endfor %}
-    <a href="{{ url_for('admin.objectives_overview', mode='a', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if batch.deadline > now }}">
+    <a href="{{ url_for('admin.objectives_overview', mode='a', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if batch.end > now }}">
         <div>
             <div class="obj-card-title">{{ title }}</div>
         </div>
         <div class="obj-card-right">
-            <span class="badge {{ 'badge-green' if ns.reviewed else 'badge-ash' }}">{{ 'Completed' if batch.deadline < now else 'In progress' }}</span>
+            <span class="badge {{ 'badge-green' if ns.reviewed else 'badge-ash' }}">{{ 'Completed' if batch.end < now else 'In progress' }}</span>
             <span class="btn btn-sm btn-outline">View &rarr;</span>
             <span class="badge badge-green">Reviewed</span>
         </div>
@@ -36,7 +53,7 @@
     {% for (title, employee_id), objs in grouped_objectives.items() %}
     {% set ns = namespace(reviewed=false) %}
     {% for obj in objs %}{% if obj.admin_review %}{% set ns.reviewed = true %}{% endif %}{% endfor %}
-    <a href="{{ url_for('admin.objectives_overview', mode='a', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if batch.deadline < now }}">
+    <a href="{{ url_for('admin.objectives_overview', mode='a', objective_id=objs[0].id) }}" class="obj-card {{ 'reviewed' if batch.end < now }}">
         <div>
             <div class="obj-card-title">{{ title }}</div>
             <div class="obj-card-meta">
@@ -44,7 +61,7 @@
             </div>
         </div>
         <div class="obj-card-right">
-            <span class="badge {{ 'badge-green' if batch.deadline < now else 'badge-ash' }}">{{ 'Completed' if batch.deadline < now else 'In progress' }}</span>
+            <span class="badge {{ 'badge-green' if batch.end < now else 'badge-ash' }}">{{ 'Completed' if batch.end < now else 'In progress' }}</span>
             <span class="btn btn-sm btn-outline">View &rarr;</span>
         </div>
     </a>
@@ -58,4 +75,32 @@
     <p>Assign objectives to this batch to get started.</p>
 </div>
 {% endif %}
+{% endif %}
+{% if not active %}
+<div class="empty-state">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <h3>Batch Not Activated Yet</h3>
+    <p>Activate to continue.</p>
+</div>
+{% endif %}
+
+{% elif now > batch.end %}
+<div class="empty-state">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <h3>Objectives connected to this batch have ended</h3>
+</div>
+
+{% else %}
+<div class="empty-state">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <h3>Objectives connected to this batch  have not commenced</h3>
+</div>
+{% endif %}
+<script>
+function toggleDivs() {
+    document.getElementById("div1").classList.toggle("hidden");
+    document.getElementById("div2").classList.toggle("hidden");
+}
+</script>
+
 {% endblock %}

@@ -193,6 +193,9 @@ class ObjectiveBatch(db.Model):
     duration = db.Column(db.Integer)
     created_at = db.Column(db.DateTime)
     deadline = db.Column(db.DateTime)
+    end = db.Column(db.DateTime)
+    start = db.Column(db.DateTime)
+    active = db.Column(db.Boolean)
 
     admin_objectives = db.relationship(
         "AdminObjective",

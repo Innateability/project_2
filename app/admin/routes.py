@@ -103,6 +103,7 @@ def reports(auth_id,batch_id):
     objectives = AdminObjective.query.filter_by(batch_id=batch_id).all() + Objective.query.filter_by(batch_id=batch_id).all()
     auths = Authentication.query.filter(Authentication.id != auth_id).all()
     grouped_by_score = defaultdict(int)
+    active = batch.active
     for auth in auths:
         open_total_weighted = 0
         objs = AdminObjective.query.filter_by(batch_id=batch_id, assigned_to_id=auth.id).all()
@@ -134,7 +135,8 @@ def reports(auth_id,batch_id):
             mode = "a"
         name_obj = (assigned_to,obj_id,mode)
         reports[name_obj].append(sum(op_total_weighted))
-    return render_template("reports.html",auth=auth,role="admin",state="admin",batch=batch,reports=reports)
+    now = datetime.now()
+    return render_template("reports.html",auth=auth,role="admin",state="admin",batch=batch,reports=reports,active=active,now=now)
 
 @admin_bp.route("/download-report-word/<int:objective_id>")
 def download_report_word(objective_id):
@@ -208,12 +210,14 @@ def add_objective_batch():
         year = request.form.get("year")
         title = request.form.get("title")
         duration = request.form.get("duration")
+        start = request.form.get("start")
+        end = request.form.get("end")
         now = datetime.now()
-        deadline = now + timedelta(weeks=int(duration))
+        deadline = end
         if ObjectiveBatch.query.filter_by(title=title).first():
             flash(f"Batch {title} already exists ","error")
             return redirect(url_for("admin.objective_batches",auth=auth,role="admin",state="admin",names_auth=names_auth))
-        new_batch = ObjectiveBatch(title=title, year=year, completed=True, created_at=now, deadline=deadline, duration=duration)
+        new_batch = ObjectiveBatch(title=title, year=year, completed=True, created_at=now, start=start, end=end, duration=duration, deadline=deadline)
         if new_batch:
             db.session.add(new_batch)
             db.session.commit()
@@ -229,7 +233,10 @@ def add_objective(batch_id):
     auth_name = Authentication.query.get(session["user_id"]).name
     authen = Authentication.query.get(session["user_id"])
     administrator = authen.administrator if authen else None
+    active = batch.active
+    print(active)
     recipients = []
+    now = datetime.now()
     if request.method == "GET":
         recipient_ids = request.args.getlist("recipients[]")
         recipients.extend(Authentication.query.filter(Authentication.id.in_(recipient_ids)).all())
@@ -238,7 +245,7 @@ def add_objective(batch_id):
             recipients.append(Authentication.query.get(recipient_ids))
         auth = Authentication.query.get(session.get("user_id"))
         batch = ObjectiveBatch.query.get(batch_id)
-        return render_template("admin_add_objective.html", recipients=recipients,state="admin",auth=auth,role="admin",batch=batch)
+        return render_template("admin_add_objective.html", recipients=recipients,state="admin",auth=auth,role="admin",batch=batch,active=active,now=now)
 
 
 
@@ -386,6 +393,9 @@ def edit_objective(objective_id):
     administrator = auth.administrator
     
     objective = AdminObjective.query.filter_by(id=objective_id).first()
+    batch = objective.batch
+    active = batch.active
+    now = datetime.now()
     if request.method == "POST":
         admin_objective = AdminObjective.query.filter_by(id=objective_id).first()
         objective = request.form.get("objective")
@@ -409,7 +419,8 @@ def edit_objective(objective_id):
         db.session.commit()
         flash(f"Objective {batch.title} edited successfully", "success")
         auth = Authentication.query.get(session.get("user_id"))
-        return redirect(url_for("admin.objectives",auth_id=assigned_to.id,auth=auth))
+        active = batch.active
+        return redirect(url_for("admin.objectives",auth_id=assigned_to.id,auth=auth,active=active))
     
     authen = Authentication.query.get(session["user_id"])
     administrator = authen.administrator
@@ -425,7 +436,7 @@ def edit_objective(objective_id):
         if department.team_leader and department.team_leader.authentication:
             team_leader_names.append(department.team_leader.authentication.name)
     auth = Authentication.query.get(session.get("user_id"))
-    return render_template("admin_edit_objective.html",employee_names=employee_names,objective=objective,team_leader_names=team_leader_names,Title="EDIT OBJECTIVES",state='admin',auth=auth,role="admin")
+    return render_template("admin_edit_objective.html",employee_names=employee_names,objective=objective,team_leader_names=team_leader_names,Title="EDIT OBJECTIVES",state='admin',auth=auth,role="admin",active=active,now=now)
 
 @admin_bp.route("/open_objectives/<int:batch_id>",methods=["POST","GET"])
 @login_required
@@ -493,6 +504,7 @@ def open_objectives_overview(batch_id,objective_id,mode):
 @admin_required
 def open_objective_overview(objective_id, assigned_by_id, mode):
     auth_id = session.get("user_id")
+    now = datetime.now()
     if mode == "t":
         auth_reviewed = AuthReviewed.query.filter_by(objective_id=objective_id,auth_id=auth_id).all()
     else:
@@ -532,7 +544,8 @@ def open_objective_overview(objective_id, assigned_by_id, mode):
         messages=messages,
         mode=mode,
         auth = Authentication.query.get(session.get("user_id")),
-        auth_reviewed=auth_reviewed)
+        auth_reviewed=auth_reviewed,
+        now=now)
 
 
 @admin_bp.route("/review_open_objective/<int:objective_id>/<mode>", methods=["POST", "GET"])
@@ -545,6 +558,8 @@ def review_open_objective(objective_id,mode):
     else:
         auth_reviewed = AuthReviewed.query.filter_by(admin_objective_id=objective_id,auth_id=auth_id).all()
     objective = Objective.query.get(objective_id) if mode == "t" else AdminObjective.query.get(objective_id)
+    active = objective.batch.active
+    now = datetime.now()
     if request.method == "POST":
         review_text = request.form.get("review")
         score_raw = request.form.get("score")
@@ -599,18 +614,21 @@ def review_open_objective(objective_id,mode):
         auth = Authentication.query.get(session.get("user_id"))
         return redirect(url_for("admin.open_objectives_overview", objective_id=objective.id, auth=auth, mode=mode, batch_id=batch.id))
     auth = Authentication.query.get(session.get("user_id"))
-    return render_template("admin_review.html", objective=objective, role="admin", state="admin",auth=auth, mode=mode, auth_reviewed=auth_reviewed)
+    return render_template("admin_review.html", objective=objective, role="admin", state="admin",auth=auth, mode=mode, auth_reviewed=auth_reviewed,active=active,now=now)
 
-@admin_bp.route("/objectives/<int:auth_id>/<int:batch_id>")
+@admin_bp.route("/objectives/<int:auth_id>/<int:batch_id>", methods=["POST","GET"])
 @login_required
 @admin_required
 def objectives(auth_id,batch_id):
     auth_name = Authentication.query.get(session["user_id"]).name
-    auth = Authentication.query.get(auth_id)
     admin_auth =  Authentication.query.get(session.get("user_id"))
     mode = "See All"
     grouped = defaultdict(list)
     batch = ObjectiveBatch.query.get(batch_id)
+    active = batch.active
+
+    print(active)
+    auth = Authentication.query.get(auth_id)
     title = batch.title
     objectives = AdminObjective.query.filter_by(batch=batch).all()
     for obj in objectives:
@@ -618,8 +636,25 @@ def objectives(auth_id,batch_id):
         grouped[key].append(obj)
     username = auth.name
     auth = Authentication.query.get(session.get("user_id"))
+    nowd = datetime.now() - timedelta(hours=1)
+    ObjectiveBatch.query.update({ObjectiveBatch.start: nowd})
+    db.session.commit()
     now = datetime.now()
-    return render_template("admin_objectives.html",grouped_objectives=grouped,state='admin',name=username,auth=auth,role="admin",batch_id=batch_id,mode="See All",title=title,batch=batch,now=now)
+    print(now,batch.start,batch.end)
+    if request.method == "POST":
+        button_active = request.form.get("active")
+        print(button_active)
+        if button_active:
+            print("na")
+            if button_active == "true":
+                batch.active = True
+                active = True
+            else:
+                batch.active = False
+                active = False
+            db.session.commit()
+        return render_template("admin_objectives.html",grouped_objectives=grouped,state='admin',name=username,auth=auth,role="admin",batch_id=batch_id,mode="See All",title=title,batch=batch,now=now,active=active)
+    return render_template("admin_objectives.html",grouped_objectives=grouped,state='admin',name=username,auth=auth,role="admin",batch_id=batch_id,mode="See All",title=title,batch=batch,now=now,active=active)
 
 @admin_bp.route("/review/<int:objective_id>", methods=["POST", "GET"])
 @login_required
@@ -627,6 +662,8 @@ def objectives(auth_id,batch_id):
 def review_objective(objective_id):
     auth_name = Authentication.query.get(session["user_id"]).name
     objective = AdminObjective.query.get(objective_id)
+    active = objective.batch.active
+    now = datetime.now()
     if request.method == "POST":
         review_text = request.form.get("review")
         score_raw = request.form.get("score")
@@ -648,7 +685,7 @@ def review_objective(objective_id):
         auth = Authentication.query.get(session.get("user_id"))
         return redirect(url_for("admin.objective_overview", objective_id=objective.id,auth=auth))
     auth = Authentication.query.get(session.get("user_id"))
-    return render_template("admin_review.html", objective=objective,state='admin',auth=auth,role="admin")
+    return render_template("admin_review.html", objective=objective,state='admin',auth=auth,role="admin",active=active,now=now)
 
 @admin_bp.route("/edit_review/<int:objective_id>", methods=["POST", "GET"])
 @login_required
@@ -656,7 +693,9 @@ def review_objective(objective_id):
 def edit_review(objective_id):
     auth_name = Authentication.query.get(session["user_id"]).name
     objective = AdminObjective.query.get(objective_id)
+    active = objective.batch.active
     review = objective.admin_review
+    now = datetime.now()
     if request.method == "POST":
         review_text = request.form.get("review")
         score_raw = request.form.get("score")
@@ -677,7 +716,7 @@ def edit_review(objective_id):
         auth = Authentication.query.get(session.get("user_id"))
         return redirect(url_for("admin.objective_overview", objective_id=objective.id,auth=auth))
     auth = Authentication.query.get(session.get("user_id"))
-    return render_template("admin_edit_review.html", objective=objective,review=review, role="admin", state="admin",Title="Edit Review",auth=auth)
+    return render_template("admin_edit_review.html", objective=objective,review=review, role="admin", state="admin",Title="Edit Review",auth=auth,active=active,now=now)
 
 
 @admin_bp.route("/objectives_overview/<mode>/<int:objective_id>")
@@ -686,6 +725,7 @@ def edit_review(objective_id):
 def objectives_overview(mode,objective_id):
     total_weighted = 0
     final_total_weighted = 0
+    now = datetime.now()
     if mode == "a":
         objective = AdminObjective.query.get(objective_id)
         employee = objective.assigned_to
@@ -709,7 +749,8 @@ def objectives_overview(mode,objective_id):
         if obj.open_objectives_review:
             final_total_weighted += obj.open_objectives_review.weighted_score
     auth = Authentication.query.get(session.get("user_id"))
-    return render_template("admin_objectives_overview.html",batch=batch,employee=employee,objectives=objectives,total_weighted=total_weighted,role="admin",state="admin",objective=objective,auth=auth,mode=mode,final_total_weighted=final_total_weighted)
+    active = batch.active
+    return render_template("admin_objectives_overview.html",batch=batch,employee=employee,objectives=objectives,total_weighted=total_weighted,role="admin",state="admin",objective=objective,auth=auth,mode=mode,final_total_weighted=final_total_weighted,active=active,now=now)
 
 
 
@@ -734,7 +775,8 @@ def objective_overview(objective_id):
     employee = objective.assigned_to.name
     auth = Authentication.query.get(session.get("user_id"))
     now = datetime.now()
-    return render_template("admin_objective_overview.html",year=year,title=title,confirmed=confirmed,employee=employee,objective=objective,state='admin',auth=auth,role="admin",messages=messages,batch=batch,now=now)
+    active = batch.active
+    return render_template("admin_objective_overview.html",year=year,title=title,confirmed=confirmed,employee=employee,objective=objective,state='admin',auth=auth,role="admin",messages=messages,batch=batch,now=now,active=active)
 
 
 @admin_bp.route("/delete_objective/<int:objective_id>", methods=["POST", "GET"])
@@ -744,6 +786,8 @@ def delete_objective(objective_id):
     auth_name = Authentication.query.get(session["user_id"]).name
     objective = AdminObjective.query.get(objective_id)
     batch = objective.batch
+    active = objective.batch.active
+    now = datetime.now()
     employee = objective.assigned_to
     objectives = AdminObjective.query.filter_by(batch_id=batch.id, assigned_to_id=employee.id).all()
     if request.method == "POST":
@@ -754,4 +798,4 @@ def delete_objective(objective_id):
         auth = Authentication.query.get(session.get("user_id"))
         return redirect(url_for("admin.objectives",auth_id=auth.id,batch_id=batch.id))
     auth = Authentication.query.get(session.get("user_id"))
-    return render_template("delete_objective.html", objective=objective,state='admin',auth=auth,role="admin")
+    return render_template("delete_objective.html", objective=objective,state='admin',auth=auth,role="admin",active=active,now=now)

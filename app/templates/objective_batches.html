@@ -7,13 +7,15 @@
         <h1 class="page-title">Select batch</h1>
         <p class="page-sub">View objectives for a specific batch</p>
     </div>
+    {% if state == "admin" %}
     <a href="{{ url_for('admin.add_objective_batch') }}" class="btn btn-outline">Create New Batch</a>
+    {% endif %}
 </div>
 {% if batches %}
 <div class="obj-list">
     {% if state == "admin" %}
     {% for batch in batches %}
-    <a href="{{ url_for('admin.objectives', auth_id=auth.id, batch_id=batch.id) }}" class="obj-card {{ 'reviewed' if batch.deadline < now }}">
+    <a href="{{ url_for('admin.objectives', auth_id=auth.id, batch_id=batch.id) }}" class="obj-card {{ 'reviewed' if batch.end < now }}">
         <div>
             <div class="obj-card-title">{{ batch.title }}</div>
             <div class="obj-card-meta">
@@ -28,7 +30,7 @@
     {% endfor %}
     {% elif state == "team_leader" %}
     {% for batch in batches %}
-    <a href="{{ url_for('team_leader.objectives', auth_id=auth.id, batch_id=batch.id) }}" class="obj-card {{ 'reviewed' if batch.deadline < now }}">
+    <a href="{{ url_for('team_leader.objectives', auth_id=auth.id, batch_id=batch.id) }}" class="obj-card {{ 'reviewed' if batch.end < now }}">
         <div>
             <div class="obj-card-title">{{ batch.title }}</div>
             <div class="obj-card-meta">
@@ -43,7 +45,7 @@
     {% endfor %}
     {% elif state == "employee" %}
     {% for batch in batches %}
-    <a href="{{ url_for('employee.objectives', auth_id=auth.id, batch_id=batch.id) }}" class="obj-card {{ 'reviewed' if batch.deadline < now }}">
+    <a href="{{ url_for('employee.objectives', auth_id=auth.id, batch_id=batch.id) }}" class="obj-card {{ 'reviewed' if batch.end < now }}">
         <div>
             <div class="obj-card-title">{{ batch.title }}</div>
             <div class="obj-card-meta">

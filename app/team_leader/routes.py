@@ -115,6 +115,7 @@ def reports(auth_id,batch_id):
     grouped = defaultdict(list)
     reports = defaultdict(list)
     batch = ObjectiveBatch.query.get(batch_id)
+    active = batch.active
     team_leader = TeamLeader.query.filter_by(authentication_id=auth.id).first()
     team_leader_id = team_leader.id
     objectives = Objective.query.filter_by(batch_id=batch_id,assigned_by_id=team_leader_id).all()
@@ -179,7 +180,8 @@ def reports(auth_id,batch_id):
             mode = "a"
             name_obj = (assigned_to,obj_id,mode)
             your_report[name_obj].append(sum(ops_total_weighted))
-    return render_template("reports.html",auth=auth,role="team_leader",state="team_leader",batch=batch,reports=reports,your_reports=your_report)
+    now = datetime.now()
+    return render_template("reports.html",auth=auth,role="team_leader",state="team_leader",batch=batch,reports=reports,your_reports=your_report,active=active,now=now)
 
 @team_leader_bp.route("/download-report-word/<int:objective_id>")
 def download_report_word(objective_id):
@@ -248,14 +250,16 @@ def objective_batches():
 def add_objective(batch_id):
     authen = Authentication.query.get(session["user_id"])
     team_leader = authen.team_leader if authen else None
-
+    now = datetime.now()
     if request.method == "GET":
         
         recipient_ids = request.args.getlist("recipients[]")
         recipients = Authentication.query.filter(Authentication.id.in_(recipient_ids)).all()
         auth = Authentication.query.get(session.get("user_id"))
         batch = ObjectiveBatch.query.get(batch_id)
-        return render_template("team_leader_add_objective.html", recipients=recipients,state="team_leader",auth=auth,role="team_leader",batch_id=batch_id,batch=batch)
+        active = batch.active
+        print(active)
+        return render_template("team_leader_add_objective.html", recipients=recipients,state="team_leader",auth=auth,role="team_leader",batch_id=batch_id,batch=batch,active=active,now=now)
     if request.method == "POST":
         recipient_ids = request.form.getlist("recipients[]")
         recipients = Authentication.query.filter(Authentication.id.in_(recipient_ids)).all()
@@ -301,6 +305,7 @@ def edit_objective(objective_id):
     obj = Objective.query.filter_by(id=objective_id).first()
     if obj.assigned_by != department_head:
         abort(403)
+    now = datetime.now()
     if request.method == "POST":
         objective_text = request.form.get("objective")
         category = request.form.get("category")
@@ -325,9 +330,10 @@ def edit_objective(objective_id):
     department = department_head.department
     employees = department.employees
     objective = Objective.query.filter_by(id=objective_id).first()
+    active = objective.batch.active
     employee_names = [emp.authentication.name for emp in employees]
     auth = Authentication.query.get(session.get("user_id"))
-    return render_template("team_leader_edit_objective.html",role="team_leader",state="team_leader",employee_names=employee_names,objective=objective,Title="EDIT OBJECTIVES",auth=auth)
+    return render_template("team_leader_edit_objective.html",role="team_leader",state="team_leader",employee_names=employee_names,objective=objective,Title="EDIT OBJECTIVES",auth=auth,active=active,now=now)
 
 @team_leader_bp.route("/received_objectives")
 @login_required
@@ -341,7 +347,9 @@ def received_objectives():
         team_leader_grouped[key].append(obj)
     auth = Authentication.query.get(session.get("user_id"))
     mode = "a"
-    return render_template("team_leader_received_objectives.html",team_leader_grouped_objectives=team_leader_grouped,state='team_leader',auth=auth,role="team_leader",mode=mode)
+    active = received_objectives[0].batch.active
+    now = datetime.now()
+    return render_template("team_leader_received_objectives.html",team_leader_grouped_objectives=team_leader_grouped,state='team_leader',auth=auth,role="team_leader",mode=mode,active=active,now=now)
 
 
 @team_leader_bp.route("/objectives/<int:auth_id>/<int:batch_id>")
@@ -351,6 +359,7 @@ def objectives(auth_id,batch_id):
     auth = Authentication.query.get(auth_id)
     batch = ObjectiveBatch.query.get(batch_id)
     team_leader_auth =  Authentication.query.get(session.get("user_id")).team_leader
+    active = batch.active
     if auth.team_leader:
         mode = "See All"
         objectives = Objective.query.filter(Objective.batch_id==batch_id).all()
@@ -364,7 +373,9 @@ def objectives(auth_id,batch_id):
         for key, obj in grouped.items():
             grouped_by_person[obj.assigned_to.name].append(obj)
         username = auth.name
-        return render_template("team_leader_assigned_objectives.html",grouped_objectives=grouped_by_person,state='team_leader',name=username,mode=mode,auth=auth,role="team_leader",batch=batch,title=title)
+        active = batch.active
+        now = datetime.now()
+        return render_template("team_leader_assigned_objectives.html",grouped_objectives=grouped_by_person,state='team_leader',name=username,mode=mode,auth=auth,role="team_leader",batch=batch,title=title,active=active,now=now)
 
 @team_leader_bp.route("/review_open_objective/<int:objective_id>/<mode>", methods=["POST", "GET"])
 @login_required
@@ -376,6 +387,7 @@ def review_open_objective(objective_id,mode):
     else:
         auth_reviewed = AuthReviewed.query.filter_by(admin_objective_id=objective_id,auth_id=auth_id).all()
     objective = Objective.query.get(objective_id) if mode == "t" else AdminObjective.query.get(objective_id)
+    now = datetime.now()
     if request.method == "POST":
         review_text = request.form.get("review")
         score_raw = request.form.get("score")
@@ -430,7 +442,8 @@ def review_open_objective(objective_id,mode):
         auth = Authentication.query.get(session.get("user_id"))
         return redirect(url_for("team_leader.open_objectives_overview", objective_id=objective.id, auth=auth, mode=mode, batch_id=batch.id))
     auth = Authentication.query.get(session.get("user_id"))
-    return render_template("team_leader_review.html", objective=objective, role="team_leader", state="team_leader",auth=auth, mode=mode, auth_reviewed=auth_reviewed)
+    active = objective.batch.active
+    return render_template("team_leader_review.html", objective=objective, role="team_leader", state="team_leader",auth=auth, mode=mode, auth_reviewed=auth_reviewed,active=active,now=now)
 
 
 @team_leader_bp.route("/review/<int:objective_id>", methods=["POST", "GET"])
@@ -462,7 +475,9 @@ def review_objective(objective_id):
         auth = Authentication.query.get(session.get("user_id"))
         return redirect(url_for("team_leader.objectives_overview", objective_id=objective.id, auth=auth, mode="t"))
     auth = Authentication.query.get(session.get("user_id"))
-    return render_template("team_leader_review.html", objective=objective, role="team_leader", state="team_leader",auth=auth)
+    active = objective.batch.active
+    now = datetime.now()
+    return render_template("team_leader_review.html", objective=objective, role="team_leader", state="team_leader",auth=auth,active=active,now=now)
 
 @team_leader_bp.route("/edit_review/<int:objective_id>", methods=["POST", "GET"])
 @login_required
@@ -491,7 +506,9 @@ def edit_review(objective_id):
         auth = Authentication.query.get(session.get("user_id"))
         return redirect(url_for("team_leader.objectives_overview", objective_id=objective.id, auth=auth, mode="t"))
     auth = Authentication.query.get(session.get("user_id"))
-    return render_template("team_leader_edit_review.html", objective=objective,review=review,state="team_leader",auth=auth,role="team_leader")
+    active = objective.batch.active
+    now = datetime.now()
+    return render_template("team_leader_edit_review.html", objective=objective,review=review,state="team_leader",auth=auth,role="team_leader",active=active,now=now)
 
 @team_leader_bp.route("/open_objectives/<int:batch_id>",methods=["POST","GET"])
 @login_required
@@ -513,7 +530,8 @@ def open_objectives(batch_id):
             mode = "a"
         open_objective.append((obj, mode))
     batch = ObjectiveBatch.query.get(batch_id)
-    return render_template("open_objectives.html",open_objectives=open_objective,state="team_leader",role="team_leader",batch=batch,now=now)
+    active = batch.active
+    return render_template("open_objectives.html",open_objectives=open_objective,state="team_leader",role="team_leader",batch=batch,now=now,active=active)
 
 @team_leader_bp.route("/open_objectives_overview/<int:batch_id>/<int:objective_id>/<mode>",methods=["POST","GET"])
 @login_required
@@ -550,7 +568,9 @@ def open_objectives_overview(batch_id,objective_id,mode):
         
     auth = Authentication.query.get(session.get("user_id"))
     now = datetime.now()
-    return render_template("open_objectives_overview.html",employee=employee,objectives=objs,objective=objectives,total_weighted=total_weighted,batch=batch,state='team_leader',auth=auth,role="team_leader",now=now,mode=mode,auth_reviewed=auth_reviewed)
+    active = ObjectiveBatch.query.get(batch_id).active
+    print(active)
+    return render_template("open_objectives_overview.html",employee=employee,objectives=objs,objective=objectives,total_weighted=total_weighted,batch=batch,state='team_leader',auth=auth,role="team_leader",now=now,mode=mode,auth_reviewed=auth_reviewed,active=active)
 
 @team_leader_bp.route("/open_objective_overview/<int:objective_id>/<int:assigned_by_id>/<mode>", methods=["POST","GET"])
 @login_required
@@ -586,6 +606,8 @@ def open_objective_overview(objective_id, assigned_by_id, mode):
     year = batch.year
     employee = objective.assigned_to.name
     auth = Authentication.query.get(session.get("user_id"))
+    active = batch.active
+    now = datetime.now()
     return render_template(
         "open_objective_overview.html",
         year=year,
@@ -597,7 +619,9 @@ def open_objective_overview(objective_id, assigned_by_id, mode):
         messages=messages,
         mode=mode,
         auth = Authentication.query.get(session.get("user_id")),
-        auth_reviewed=auth_reviewed)
+        auth_reviewed=auth_reviewed,
+        active=active,
+        now=now)
 
 
 @team_leader_bp.route("/objectives_overview/<mode>/<int:objective_id>")
@@ -629,7 +653,9 @@ def objectives_overview(mode,objective_id):
         if obj.open_objectives_review:
             final_total_weighted += obj.open_objectives_review.weighted_score
     auth = Authentication.query.get(session.get("user_id"))
-    return render_template("team_leader_objectives_overview.html",batch=batch,employee=employee,objectives=objectives,total_weighted=total_weighted,role="team_leader",state="team_leader",objective=objective,auth=auth,mode=mode,final_total_weighted=final_total_weighted)
+    active = batch.active
+    now = datetime.now()
+    return render_template("team_leader_objectives_overview.html",batch=batch,employee=employee,objectives=objectives,total_weighted=total_weighted,role="team_leader",state="team_leader",objective=objective,auth=auth,mode=mode,final_total_weighted=final_total_weighted,active=active,now=now)
 
 @team_leader_bp.route("/objective_overview/<int:objective_id>/<int:assigned_by_id>", methods=["POST","GET"])
 @login_required
@@ -705,14 +731,16 @@ def delete_objective(objective_id,assigned_by_id):
         auth = Authentication.query.get(session.get("user_id"))
         return redirect(url_for("team_leader.objectives",auth_id=auth_id,auth=auth))
     auth = Authentication.query.get(session.get("user_id"))
-    return render_template("delete_objective.html", objective=objective, role="team_leader", state="team_leader",auth=auth)
+    active = objective.batch.active
+    now = datetime.now()
+    return render_template("delete_objective.html", objective=objective, role="team_leader", state="team_leader",auth=auth,active=active,now=now)
 
 @team_leader_bp.route("/feedback/<int:objective_id>", methods=["GET", "POST"])
 @login_required
 @team_leader_required
 def feedback(objective_id):
     admin_objective = AdminObjective.query.get(objective_id)
-    
+    now = datetime.now()
     if request.method == "POST":
         feedback_text = request.form.get("feedback")
 
@@ -726,13 +754,16 @@ def feedback(objective_id):
         auth = Authentication.query.get(session.get("user_id"))
         return redirect(url_for("team_leader.objective_overview", objective_id=admin_objective.id,assigned_by_id=admin_objective.assigned_by_id,auth=auth))
     auth = Authentication.query.get(session.get("user_id"))
+    active = admin_objective.batch.active
     return render_template(
         "team_leader_feedback.html",
         objective=admin_objective,
         role="team_leader",
         state="team_leader",
         Title="Feedback",
-        auth=auth
+        auth=auth,
+        active=active,
+        now = datetime.now()
     )
 
 @team_leader_bp.route("/edit_feedback/<int:objective_id>", methods=["GET", "POST"])
@@ -778,11 +809,15 @@ def edit_feedback(objective_id):
         else ""
     )
     auth = Authentication.query.get(session.get("user_id"))
+    active = objective.batch.active
+    now = datetime.now()
     return render_template(
         "team_leader_edit_feedback.html",
         objective=objective,
         feedback=feedback_text,
         role="team_leader",
         state="team_leader",
-        auth=auth
+        auth=auth,
+        active=active,
+        now = datetime.now()
     )

@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% set page_title = "Edit Review" %}
 {% block content %}
+{% if active %}
+{% if now > objective.batch.end %}
 <div style="max-width:600px">
     <div class="page-header"><h1 class="page-title">Edit Review</h1></div>
     <div class="card">
@@ -27,6 +29,21 @@
         </div>
     </div>
 </div>
+{% else %}
+<div class="empty-state">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <h3>Objectives connected to this batch are not ready for review</h3>
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <h3>Batch Not Activated</h3>
+</div>
+{% endif %}
+{% endif %}
+
 <script>
 const si = document.getElementById("scoreInput");
 const sr = parseInt(document.getElementById("scoreRange").innerText);

@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% set page_title = "Objectives Overview" %}
 {% block content %}
+{% if batch.active %}
+{% if now > batch.start %}
 <div class="page-header">
     <div>
         <h1 class="page-title">{{ batch.title }}</h1>
@@ -41,4 +43,23 @@
         </table>
     </div>
 </div>
+{% elif now > batch.end %}
+<div class="empty-state">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <h3>Objectives connected to this batch have ended</h3>
+</div>
+
+{% else %}
+<div class="empty-state">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <h3>Objectives connected to this batch  have not commenced</h3>
+</div>
+{% endif %}
+{% else %}
+<div class="empty-state">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <h3>Batch Not Active</h3>
+</div>
+{% endif %}
+
 {% endblock %}
