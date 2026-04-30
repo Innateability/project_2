@@ -476,6 +476,9 @@ def review_objective(objective_id):
         return redirect(url_for("team_leader.objectives_overview", objective_id=objective.id, auth=auth, mode="t"))
     auth = Authentication.query.get(session.get("user_id"))
     active = objective.batch.active
+    start = objective.batch.start
+    end = objective.batch.end
+    print(start, end)
     now = datetime.now()
     return render_template("team_leader_review.html", objective=objective, role="team_leader", state="team_leader",auth=auth,active=active,now=now)
 
@@ -661,16 +664,24 @@ def objectives_overview(mode,objective_id):
 @login_required
 @team_leader_required
 def objective_overview(objective_id, assigned_by_id):
+    auth_id = session.get("user_id")
+    team_leader_id = TeamLeader.query.filter(TeamLeader.authentication_id == auth_id).first().id
+    now = datetime.now()
     if request.method == "POST":
         message = request.form.get("message")
         if message:
-            now = datetime.now()
-            new_message = Messages(message=message,status="team_leader",timestamp=now,admin_objective_id=objective_id)
+            if assigned_by_id == auth_id:
+                print("now")
+                new_message = Messages(message=message,status="team_leader",timestamp=now,objective_id=objective_id)
+            else:
+                print("then")
+                new_message = Messages(message=message,status="team_leader",timestamp=now,admin_objective_id=objective_id)
             db.session.add(new_message)
             db.session.commit()
-    message = Messages.query.filter_by(admin_objective_id=objective_id).delete()
-    db.session.commit()
-    messages = Messages.query.filter_by(admin_objective_id=objective_id).order_by(Messages.timestamp.asc()).all()
+    if assigned_by_id == auth_id:
+        messages = Messages.query.filter_by(objective_id=objective_id).order_by(Messages.timestamp.asc()).all()
+    else:
+        messages = Messages.query.filter_by(admin_objective_id=objective_id).order_by(Messages.timestamp.asc()).all()
     assigned_by_auth = Authentication.query.get(assigned_by_id)
     if assigned_by_auth.role == "team_leader":
         assigned_by = assigned_by_auth.team_leader
