@@ -509,15 +509,6 @@ def open_objective_overview(objective_id, assigned_by_id, mode):
         auth_reviewed = AuthReviewed.query.filter_by(objective_id=objective_id,auth_id=auth_id).all()
     else:
         auth_reviewed = AuthReviewed.query.filter_by(admin_objective_id=objective_id,auth_id=auth_id).all()
-    if request.method == "POST":
-        message = request.form.get("message")
-        if message:
-            now = datetime.now()
-            new_message = Messages(message=message,status="admin",timestamp=now,admin_objective_id=objective_id)
-            db.session.add(new_message)
-            db.session.commit()
-    db.session.commit()
-    messages = Messages.query.filter_by(admin_objective_id=objective_id).order_by(Messages.timestamp.asc()).all()
     assigned_by_auth = Authentication.query.get(assigned_by_id)
     if assigned_by_auth.role == "team_leader":
         assigned_by = assigned_by_auth.team_leader
@@ -765,6 +756,7 @@ def objective_overview(objective_id):
             new_message = Messages(message=message,status="admin",timestamp=now,admin_objective_id=objective_id)
             db.session.add(new_message)
             db.session.commit()
+            return redirect(url_for("admin.objective_overview", admin_objective_id=objective_id))
     messages = Messages.query.filter_by(admin_objective_id=objective_id).order_by(Messages.timestamp.asc()).all()
     auth_name = Authentication.query.get(session["user_id"]).name
     objective = AdminObjective.query.get(objective_id)
