@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- pass the schema from Flask straight into JS -->
+<script>
+  const DB_SCHEMA = {{ schema | tojson }};
+</script>
+
+<!-- drop the full frontend JS/HTML from db_explorer_frontend.html here,
+     but replace the loadSchema() fetch call with: -->
+<script>
+  DB = DB_SCHEMA;
+  document.getElementById("db-name").textContent = DB.db;
+  render();
+</script>
+
+{% endblock %}

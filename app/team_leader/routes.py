@@ -347,7 +347,10 @@ def received_objectives():
         team_leader_grouped[key].append(obj)
     auth = Authentication.query.get(session.get("user_id"))
     mode = "a"
-    active = received_objectives[0].batch.active
+    if received_objectives:
+        active = received_objectives[0].batch.active
+    else:
+        active = False
     now = datetime.now()
     return render_template("team_leader_received_objectives.html",team_leader_grouped_objectives=team_leader_grouped,state='team_leader',auth=auth,role="team_leader",mode=mode,active=active,now=now)
 
@@ -691,8 +694,6 @@ def objective_overview(objective_id, assigned_by_id):
     confirmed = batch.completed
     auth = Authentication.query.get(session.get("user_id"))
     now = datetime.now()
-
-
     auth = Authentication.query.get(session.get("user_id"))
     return render_template(
         "team_leader_objective_overview.html",

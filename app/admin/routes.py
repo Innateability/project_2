@@ -10,6 +10,9 @@ from io import BytesIO
 from flask import send_file
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+import pandas as pd
+from sqlalchemy import inspect as sa_inspect, text
+
 
 
 admin_bp = Blueprint("admin",__name__,url_prefix="/admin")
@@ -198,6 +201,81 @@ def objective_batches():
     now = datetime.now()
     return render_template("objective_batches.html",auth=auth,role="admin",state="admin",names_auth=names_auth,batches=batches,now=now)
 
+@admin_bp.route("/db_explorer", methods=["GET"])
+@login_required
+@admin_required
+def db_explorer():
+    auth_name = Authentication.query.get(session["user_id"]).name
+    current_user_id = session["user_id"]
+    auth = Authentication.query.get(session.get("user_id"))
+    
+    insp = sa_inspect(db.engine)
+    db_name = db.engine.url.database
+
+    tables_out = []
+
+    for table_name in insp.get_table_names():
+        pk_cols = set(insp.get_pk_constraint(table_name).get("constrained_columns", []))
+
+        fk_map = {}
+        for fk in insp.get_foreign_keys(table_name):
+            for local_col, ref_col in zip(fk["constrained_columns"], fk["referred_columns"]):
+                fk_map[local_col] = f"{fk['referred_table']}.{ref_col}"
+
+        with db.engine.connect() as conn:
+            row_count = conn.execute(text(f'SELECT COUNT(*) FROM "{table_name}"')).scalar()
+
+        raw_cols = insp.get_columns(table_name)
+        columns_out = []
+
+        for col in raw_cols:
+            col_name = col["name"]
+            col_type = str(col["type"])
+            nullable = col.get("nullable", True)
+
+            with db.engine.connect() as conn:
+                rows = conn.execute(
+                    text(f'SELECT "{col_name}" FROM "{table_name}" WHERE "{col_name}" IS NOT NULL LIMIT 5')
+                ).fetchall()
+                sample = [
+                    v if isinstance(v, (int, float, bool, str, type(None))) else str(v)
+                    for (v,) in rows
+                ]
+                unique_count = conn.execute(
+                    text(f'SELECT COUNT(DISTINCT "{col_name}") FROM "{table_name}"')
+                ).scalar()
+                null_count = conn.execute(
+                    text(f'SELECT COUNT(*) FROM "{table_name}" WHERE "{col_name}" IS NULL')
+                ).scalar()
+
+            columns_out.append({
+                "name": col_name,
+                "type": col_type,
+                "pk": col_name in pk_cols,
+                "nullable": nullable,
+                "fk": fk_map.get(col_name),
+                "sample": sample,
+                "unique_count": unique_count,
+                "null_count": null_count,
+            })
+
+        tables_out.append({
+            "name": table_name,
+            "row_count": row_count,
+            "columns": columns_out,
+        })
+
+    schema = {"db": db_name, "tables": tables_out}
+    print(1)
+    return render_template(
+        "db_explorer.html",
+        auth=auth,
+        auth_name=auth_name,
+        role="admin",
+        state="admin",
+        schema=schema,
+    )
+
 @admin_bp.route("/add_objective_batch",methods=["POST","GET"])
 @login_required
 @admin_required
@@ -233,6 +311,7 @@ def add_objective(batch_id):
     auth_name = Authentication.query.get(session["user_id"]).name
     authen = Authentication.query.get(session["user_id"])
     administrator = authen.administrator if authen else None
+    batch = ObjectiveBatch.query.get(batch_id)
     active = batch.active
     print(active)
     recipients = []
@@ -245,7 +324,7 @@ def add_objective(batch_id):
             recipients.append(Authentication.query.get(recipient_ids))
         auth = Authentication.query.get(session.get("user_id"))
         batch = ObjectiveBatch.query.get(batch_id)
-        return render_template("admin_add_objective.html", recipients=recipients,state="admin",auth=auth,role="admin",batch=batch,active=active,now=now)
+        return render_template("admin_add_objective.html", recipient_ids=recipient_ids, recipients=recipients,state="admin",auth=auth,role="admin",batch=batch,active=active,now=now)
 
 
 
@@ -290,6 +369,59 @@ def add_objective(batch_id):
         flash("Objective(s) created successfully", "success")
         auth = Authentication.query.get(session.get("user_id"))
         return redirect(url_for("admin.objectives",auth_id=recipients[0].id,auth=auth,batch_id=batch.id))
+
+@admin_bp.route("/upload-excel-objective/<batch_id>", methods=["POST","GET"])
+@login_required
+@admin_required
+def upload_excel(batch_id):
+    auth_id = session.get("user_id")
+    administrator = Administrator.query.get(auth_id)
+    recipient_ids = request.args.getlist("recipient_ids[]")
+    print(recipient_ids)
+    batch = ObjectiveBatch.query.get(batch_id)
+    if request.method == "POST":
+        file = request.files.get("file")
+            
+        filename = file.filename.lower()
+            
+        if filename.endswith(".csv"):
+            df = pd.read_csv(file)
+        else:
+            df = pd.read_excel(file)
+        df = df.dropna(how="all")
+        
+        df = df.dropna(axis=1, how="all")
+        
+        records = df.to_dict(orient="records")
+            
+        category = None
+        # print(records,recipient_ids)
+        for row in records:
+            print(1)
+            value = list(row.values())
+            print(value)
+            if pd.notna(value[1]):
+                print(2)
+                category = value[0]
+            for rec in recipient_ids:
+                print(3)
+                recipient = Authentication.query.get(int(rec))
+                objective = AdminObjective(
+                    objective=value[1],
+                    category=category,
+                    weight=int(value[2]),
+                    score_range=5,
+                    assigned_to=recipient,
+                    assigned_by=administrator,
+                    batch=batch,
+                    private=True)
+                db.session.add(objective)
+        print(4)
+        db.session.commit()
+        print(5)
+        flash("Upload successful", "success")
+        return redirect(url_for("admin.objectives_overview",mode="a",objective_id=objective.id))
+    return render_template("upload_excel.html",state="admin",batch=batch,auth_id=auth_id)
 
 
 @admin_bp.route("/add_member", methods=["POST", "GET"])
@@ -627,8 +759,6 @@ def objectives(auth_id,batch_id):
         grouped[key].append(obj)
     username = auth.name
     auth = Authentication.query.get(session.get("user_id"))
-    nowd = datetime.now() - timedelta(hours=1)
-    ObjectiveBatch.query.update({ObjectiveBatch.start: nowd})
     db.session.commit()
     now = datetime.now()
     print(now,batch.start,batch.end)

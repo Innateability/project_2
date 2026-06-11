@@ -6,24 +6,11 @@ class Department(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
 
-    administrator_id = db.Column(
-        db.Integer,
-        db.ForeignKey("administrators.id", ondelete="SET NULL"),
-        nullable=True
-    )
+    administrator_id = db.Column(db.Integer,db.ForeignKey("administrators.id", ondelete="SET NULL"),nullable=True)
 
     administrator = db.relationship("Administrator", back_populates="departments")
-    employees = db.relationship(
-        "Employee",
-        back_populates="department",
-        cascade="all"
-    )
-    team_leader = db.relationship(
-        "TeamLeader",
-        back_populates="department",
-        uselist=False,
-        cascade="all, delete-orphan"
-    )
+    employees = db.relationship("Employee",back_populates="department",cascade="all")
+    team_leader = db.relationship("TeamLeader",back_populates="department",uselist=False,cascade="all, delete-orphan")
 
 class EmployeeEmail(db.Model):
     __tablename__ = "employee_emails"
@@ -47,17 +34,9 @@ class Authentication(db.Model):
     administrator = db.relationship("Administrator", back_populates="authentication", uselist=False)
     auth_reviewed = db.relationship("AuthReviewed", back_populates="authentication", uselist=False)
 
-    objectives = db.relationship(
-        "Objective",
-        back_populates="assigned_to",
-        cascade="all, delete-orphan"
-    )
+    objectives = db.relationship("Objective",back_populates="assigned_to",cascade="all, delete-orphan")
 
-    admin_objectives = db.relationship(
-        "AdminObjective",
-        back_populates="assigned_to",
-        cascade="all, delete-orphan"
-    )
+    admin_objectives = db.relationship("AdminObjective",back_populates="assigned_to",cascade="all, delete-orphan")
 
 class Employee(db.Model):
     __tablename__ = "employees"
@@ -65,18 +44,9 @@ class Employee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
 
-    department_id = db.Column(
-        db.Integer,
-        db.ForeignKey("departments.id", ondelete="CASCADE"),
-        nullable=False
-    )
+    department_id = db.Column(db.Integer,db.ForeignKey("departments.id", ondelete="CASCADE"),nullable=False)
 
-    authentication_id = db.Column(
-        db.Integer,
-        db.ForeignKey("authentications.id", ondelete="CASCADE"),
-        unique=True,
-        nullable=False
-    )
+    authentication_id = db.Column(db.Integer,db.ForeignKey("authentications.id", ondelete="CASCADE"),unique=True,nullable=False)
 
     department = db.relationship("Department", back_populates="employees")
     authentication = db.relationship("Authentication", back_populates="employee")
@@ -87,28 +57,14 @@ class TeamLeader(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
 
-    department_id = db.Column(
-        db.Integer,
-        db.ForeignKey("departments.id", ondelete="CASCADE"),
-        unique=True,
-        nullable=False
-    )
+    department_id = db.Column(db.Integer,db.ForeignKey("departments.id", ondelete="CASCADE"),unique=True,nullable=False)
 
-    authentication_id = db.Column(
-        db.Integer,
-        db.ForeignKey("authentications.id", ondelete="CASCADE"),
-        unique=True,
-        nullable=False
-    )
+    authentication_id = db.Column(db.Integer,db.ForeignKey("authentications.id", ondelete="CASCADE"),unique=True,nullable=False)
 
     department = db.relationship("Department", back_populates="team_leader")
     authentication = db.relationship("Authentication", back_populates="team_leader")
 
-    objectives = db.relationship(
-        "Objective",
-        back_populates="assigned_by",
-        cascade="all, delete-orphan"
-    )
+    objectives = db.relationship("Objective",back_populates="assigned_by",cascade="all, delete-orphan")
 
 
 
@@ -165,6 +121,7 @@ class Administrator(db.Model):
         back_populates="assigned_by",
         cascade="all, delete-orphan"
     )
+    
 class Messages(db.Model):
     __tablename__ = "messages"
 
@@ -295,23 +252,6 @@ class AdminReviewFeedback(db.Model):
         back_populates="employee_feedback"
     )
     
-
-
-# class ObjectiveBatch(db.Model):
-#     __tablename__ = "objective_batches"
-
-#     id = db.Column(db.Integer, primary_key=True)
-#     title = db.Column(db.String(200), nullable=False)
-#     year = db.Column(db.Integer, nullable=False)z
-
-#     objectives = db.relationship(
-#         "Objective",
-#         back_populates="batch",
-#         cascade="all, delete-orphan"
-#     )
-
-
-
 class Objective(db.Model):
     __tablename__ = "objectives"
 

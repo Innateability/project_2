@@ -10,7 +10,16 @@
             {% for r in recipients %}<strong>{{ r.name }}</strong>{% if not loop.last %}, {% endif %}{% endfor %}
         </p>
     </div>
+    <div>
+        <form method="GET" action="{{ url_for('admin.upload_excel', batch_id=batch.id) }}">
+            {% for recipient_id in recipient_ids %}
+            <input type="hidden" name="recipient_ids[]" value="{{ recipient_id }}">
+            {% endfor %}
+            <button type="submit" class="btn btn-primary">Upload Objectives File</button>
+        </form>
+    </div>
 </div>
+
 <form method="POST" onsubmit="return validateWeights()">
     {% for recipient in recipients %}
         <input type="hidden" name="recipients[]" value="{{ recipient.id }}">
